@@ -2,7 +2,7 @@
 // Dans Netlify, définir la variable d'environnement USDA_API_KEY.
 exports.handler = async function (event) {
   const origin = String((event.headers || {}).origin || '');
-  const allowedOrigins = new Set(['https://perfmaster27.netlify.app']);
+  const allowedOrigins = new Set(['https://perf-master.netlify.app']);
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'public, max-age=300',
