@@ -251,15 +251,40 @@ function mealTemplatesFor(e,gd,index){
  return choices;
 }
 
+// Evidence-informed daily macro allocation. Carb floors follow sports-nutrition
+// ranges by endurance-training volume; intra-session carbs are included in the
+// daily carbohydrate total exactly once. Fat is planned at 25% of energy.
+function evidenceMacroTargets(kg,energy,intra,mode,enduranceHours,strengthHours,cKg){
+ const aff=mode==='affutage',mass=mode==='masse';
+ const proteinKg=aff?2.1:2.0;
+ let carbFloorKg;
+ if(enduranceHours<=0) carbFloorKg=strengthHours>0?3.5:3.5;
+ else if(enduranceHours<1) carbFloorKg=4.5;
+ else if(enduranceHours<=2) carbFloorKg=5.5;
+ else if(enduranceHours<=3) carbFloorKg=7.0;
+ else if(enduranceHours<=4) carbFloorKg=8.0;
+ else carbFloorKg=9.0;
+ // Retain the app's workload/race-load estimate when it is higher than the floor.
+ const dailyCarbFloorKg=Math.max(carbFloorKg,Math.min(12,(Number(cKg)||carbFloorKg)+(Math.max(0,Number(intra)||0)/kg)));
+ const protein=Math.round(proteinKg*kg),def=aff?400:mass?-350:0;
+ // Ensure protein + minimum daily carbohydrate can fit while retaining 25% energy from fat.
+ const targetKcal=Math.max(0,Number(energy)||0)-def;
+ const kcal=Math.max(targetKcal,(4*(protein+dailyCarbFloorKg*kg))/0.75);
+ const fat=Math.max(0,Math.round(kcal*0.25/9));
+ const totalCarbs=Math.max(0,Math.round((kcal-4*protein-9*fat)/4));
+ const mealCarbs=Math.max(0,totalCarbs-Math.max(0,Number(intra)||0));
+ return {protein,carbs:mealCarbs,fat,kcal,totalCarbs,def,proteinKg,carbKg:totalCarbs/kg};
+}
+
 function gen(gd){gd=gd||$('day').value;
  const kg=+$("kg").value||70,W=tm($("wake").value),dur=Math.max(0,+$("dur").value||0),sport=$("sport").value||"bike",rest=dur==0,R=rest?1380:tm($("ride").value),watts=sport==="bike"?(+$("watts").value||0):0,
  sp=[$("s1").value,$("s2").value].filter(x=>x!="none"),hasQ=sp.some(x=>["vo2","tempo","sprint"].includes(x)),muscu=sport==="strength",
  aff=MODE=="affutage",perf=MODE=="performance",mass=MODE=="masse",B=W+15,E=R+dur*60;
  let rate=rest||sport==="strength"||dur<1?0:dur<=1.5?30:dur<=2.5?60:dur<=3.5?75:90; if(sport==="run")rate=rest||dur<1?0:dur<=1.5?30:dur<=2.5?45:60;
- const rcx=raceCtx(gd),rd=!!(rcx.day&&['A','a'].includes(rcx.day.o)),ftp=+$("ftp").value||280,IF=sport==="bike"?(watts>0?watts/ftp:.7):sport==="run"?.75:0,TSS=rest||sport==="strength"?0:dur*IF*IF*100;if(sport!=="strength"&&rate>0){if(hasQ||IF>=.85)rate+=10;if(perf||rd)rate+=10;rate=Math.min(sport==="run"?75:100,rate)}else rate=0;
+ const rcx=raceCtx(gd),rd=!!(rcx.day&&['A','a'].includes(rcx.day.o)),ftp=+$("ftp").value||280,IF=sport==="bike"?(watts>0?watts/ftp:.7):sport==="run"?.75:0,TSS=rest||sport==="strength"?0:dur*IF*IF*100;if(sport!=="strength"&&rate>0){if(hasQ||IF>=.85)rate+=10;if(perf||rd)rate+=10;rate=Math.min(sport==="run"?75:90,rate)}else rate=0;
  const bon={vo2:.8,tempo:.5,sprint:.5};
  let cKg=(rest?4:4.8+TSS*.012)+sp.reduce((n,s)=>n+bon[s]*.5,0)+(perf?.5:0);if(rcx.load)cKg=Math.max(cKg,rcx.load-rate*dur/kg);cKg=Math.min(cKg,10.5);
- const intraC=Math.round(rate*dur),Pt=(aff?2.1:mass?2:1.8+(muscu?.2:0))*kg,BMR=bmrCalc(kg),NE=Math.round(BMR*PROF.pal),exerciseKcal=(()=>{if(sport==="bike")return watts>0?(watts*dur*3.6)/(0.24*4.184):kg*7*dur;if(sport==="run"){const m=String($("pace").value||"5:30").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:5.5;return kg*(60/Math.max(2.5,pace))*dur;}const level=$("enduranceIntensity")?.value||"moderate",metMap={easy:6,moderate:8,hard:10};if(sport==="swim"){const m=String($("swimPace")?.value||"2:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:2;const paceFactor=Math.max(.85,Math.min(1.15,2/Math.max(.8,pace)));return kg*(metMap[level]||8)*paceFactor*dur;}if(sport==="ski"){const m=String($("skiPace")?.value||"6:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:6;const paceFactor=Math.max(.8,Math.min(1.25,6/Math.max(2.5,pace)));return kg*({easy:6,moderate:8,hard:11}[level]||8)*paceFactor*dur;}const intensity=$("strengthIntensity")?.value||"moderate";return kg*({light:3.5,moderate:5,hard:6}[intensity]||5)*dur;})(),EE=Math.round(NE+(rest?0:Math.max(0,exerciseKcal-BMR*dur/24))),EEFinal=Math.round((PLANS[gd]&&PLANS[gd].eeOverride>0)?NE+Math.max(0,PLANS[gd].eeOverride-BMR*dur/24):EE),def=aff?400:mass?-350:0,offC=aff?Math.round(Math.min(cKg*kg,Math.max(3*kg,(EEFinal-def-4*intraC-4*Pt-8.1*kg)/4))):mass?Math.round(Math.min(Math.max(cKg*kg,(EEFinal-def-4*intraC-4*Pt-10.8*kg)/4),Math.max(3.5,(dur>=4?12:10.5)-intraC/kg)*kg)):Math.round(Math.max(cKg*kg,(EEFinal-def-4*intraC-4*Pt-9*1.2*kg)/4));let Ft=Math.min((aff?1.1:1.5)*kg,Math.max((aff?.8:1)*kg,(EEFinal-def-4*intraC-4*offC-4*Pt)/9));
+ const intraC=Math.round(rate*dur),BMR=bmrCalc(kg),NE=Math.round(BMR*PROF.pal),exerciseKcal=(()=>{if(sport==="bike")return watts>0?(watts*dur*3.6)/(0.24*4.184):kg*7*dur;if(sport==="run"){const m=String($("pace").value||"5:30").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:5.5;return kg*(60/Math.max(2.5,pace))*dur;}const level=$("enduranceIntensity")?.value||"moderate",metMap={easy:6,moderate:8,hard:10};if(sport==="swim"){const m=String($("swimPace")?.value||"2:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:2;const paceFactor=Math.max(.85,Math.min(1.15,2/Math.max(.8,pace)));return kg*(metMap[level]||8)*paceFactor*dur;}if(sport==="ski"){const m=String($("skiPace")?.value||"6:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:6;const paceFactor=Math.max(.8,Math.min(1.25,6/Math.max(2.5,pace)));return kg*({easy:6,moderate:8,hard:11}[level]||8)*paceFactor*dur;}const intensity=$("strengthIntensity")?.value||"moderate";return kg*({light:3.5,moderate:5,hard:6}[intensity]||5)*dur;})(),EE=Math.round(NE+(rest?0:Math.max(0,exerciseKcal-BMR*dur/24))),EEFinal=Math.round((PLANS[gd]&&PLANS[gd].eeOverride>0)?NE+Math.max(0,PLANS[gd].eeOverride-BMR*dur/24):EE),macro=evidenceMacroTargets(kg,EEFinal,intraC,MODE,sport==="strength"?0:dur,sport==="strength"?dur:0,cKg),Pt=macro.protein,offC=macro.carbs,Ft=macro.fat,def=macro.def;
  // --- horaires ---
  const ev=[];const add=(t,type,label,x)=>ev.push(Object.assign({t:Math.round(t/5)*5,type,label},x));
  let needL=true;
@@ -408,7 +433,7 @@ function applyMultiSessionEnergy(P,dayKey){
   let intensity= sport==='bike'?(Number(c.watts)>0?Number(c.watts)/ftp:.7):sport==='swim'?({easy:.55,moderate:.7,hard:.9}[c.enduranceIntensity||'moderate']||.7):sport==='ski'?({easy:.55,moderate:.75,hard:.95}[c.enduranceIntensity||'moderate']||.75):.75;
   const tss=dur*intensity*intensity*100;totalTSS+=tss;
   let rate=dur<1?0:(sport==='run'||sport==='swim'||sport==='ski')?(dur<=1.5?30:dur<=2.5?45:60):(dur<=1.5?30:dur<=2.5?60:dur<=3.5?75:90); // taux horaire maintenu au-delà de 4 h; le total = taux × durée, sans plafond journalier
-  if(rate>0){if(intensity>=.85)rate+=10;if(perf)rate+=10;rate=Math.min(sport==='run'?75: sport==='swim'?75: sport==='ski'?90:100,rate);}
+  if(rate>0){if(intensity>=.85)rate+=10;if(perf)rate+=10;rate=Math.min(sport==='run'?75: sport==='swim'?75: sport==='ski'?90:90,rate);}
   if(sport==='swim'||sport==='ski'){const level=c.enduranceIntensity||'moderate';if(level==='hard')rate+=5;}
   
   const sessionTotal=Math.round(rate*dur);totalIntra+=sessionTotal;sessionFuel.push({id:entry.id,sport,dur,rate,total:sessionTotal,start:c.ride||'09:30'});
@@ -416,10 +441,10 @@ function applyMultiSessionEnergy(P,dayKey){
  }
  const cKgBase=4.8+totalTSS*.012+(hasQuality?.5:0)+(perf?.5:0);
  const cKg=Math.min(cKgBase,10.5);
- const proteinKg=aff?2.1:mass?2:1.8+(hasStrength?.2:0);
- const protein=Math.round(proteinKg*kg),def=aff?400:mass?-350:0;
- const carbs=aff?Math.round(Math.min(cKg*kg,Math.max(3*kg,(P.EE-def-4*totalIntra-4*protein-8.1*kg)/4))):mass?Math.round(Math.min(Math.max(cKg*kg,(P.EE-def-4*totalIntra-4*protein-10.8*kg)/4),10.5*kg)):Math.round(Math.max(cKg*kg,(P.EE-def-4*totalIntra-4*protein-9*1.2*kg)/4));
- const fat=Math.round(Math.min((aff?1.1:1.5)*kg,Math.max((aff?.8:1)*kg,(P.EE-def-4*totalIntra-4*carbs-4*protein)/9)));
+ const enduranceHours=active.filter(c=>(c.sport||'bike')!=='strength').reduce((a,c)=>a+(Number(c.dur)||0),0);
+ const strengthHours=active.filter(c=>(c.sport||'bike')==='strength').reduce((a,c)=>a+(Number(c.dur)||0),0);
+ const macro=evidenceMacroTargets(kg,P.EE,totalIntra,mode,enduranceHours,strengthHours,cKg);
+ const protein=macro.protein,carbs=macro.carbs,fat=macro.fat,def=macro.def;
  // Distribute daily targets proportionally across the generated meals.
  const distribute=(key,total)=>{const weights=P.ev.map(e=>Math.max(0,Number(e[key])||0)),sum=weights.reduce((a,b)=>a+b,0);P.ev.forEach((e,i)=>{e[key]=sum>0?Math.round(total*weights[i]/sum):Math.round(total/Math.max(1,P.ev.length));});};
  distribute('c',carbs);distribute('p',protein);distribute('f',fat);
