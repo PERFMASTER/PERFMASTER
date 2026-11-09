@@ -735,69 +735,25 @@ async function syncIv(q){if($('pik')){PROF.ikey=$('pik').value.trim();PROF.iid=$
  const hd={Authorization:'Basic '+btoa('API_KEY:'+PROF.ikey)},b='https://intervals.icu/api/v1/athlete/'+(PROF.iid||0),t=iso(new Date()),g=u=>fetch(b+u,{headers:hd}).then(r=>{if(!r.ok)throw 0;return r.json()});
  try{const[A,E,Wl]=await Promise.all([g('/activities?oldest='+addD(t,-21)+'&newest='+t),g('/events?category=WORKOUT&oldest='+t+'&newest='+addD(t,28)),g('/wellness?oldest='+addD(t,-7)+'&newest='+t)]);
   const ftp=+$('ftp').value||280;let n=0;
-  const normSport=v=>{v=String(v||'').toLowerCase();return /run|course/.test(v)?'run':/strength|weight|muscu/.test(v)?'strength':/swim|natation|pool/.test(v)?'swim':/ski|nordic/.test(v)?'ski':'bike'};
-  const mins=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})(?::.*)?$/);return m?Number(m[1])*60+Number(m[2]):null};
-  const timeGap=(a,b)=>{const x=mins(a),y=mins(b);return x===null||y===null?null:Math.abs(x-y)};
-  // Match a completed activity to a planned workout on the same local date.
-  // Duration is deliberately NOT a hard condition: the athlete may finish
-  // earlier/later than planned. With multiple same-sport sessions, use start
-  // time and refuse ambiguous matches rather than replacing the wrong workout.
-  const findPlannedMatch=(list,cfg)=>{
-   const candidates=list.filter(z=>z&&z.cfg&&z.planned!==false&&normSport(z.cfg.sport)===normSport(cfg.sport));
-   if(!candidates.length)return null;
-   if(candidates.length===1)return candidates[0];
-   const ranked=candidates.map(z=>({z,g:timeGap(z.cfg.ride,cfg.ride)})).filter(x=>x.g!==null&&x.g<=480).sort((a,b)=>a.g-b.g);
-   if(!ranked.length)return null;
-   if(ranked.length>1&&ranked[1].g-ranked[0].g<30)return null; // ambiguous: do not overwrite another session
-   return ranked[0].z;
-  };
-  const findActualMatch=(list,cfg)=>{
-   const candidates=list.filter(z=>z&&z.cfg&&z.source==='intervals'&&z.planned===false&&normSport(z.cfg.sport)===normSport(cfg.sport));
-   const ranked=candidates.map(z=>({z,g:timeGap(z.cfg.ride,cfg.ride)})).filter(x=>x.g!==null&&x.g<=480).sort((a,b)=>a.g-b.g);
-   return ranked.length?ranked[0].z:null;
-  };
   const put=(sec,watts,st,sport,pace,calories,sourceId,isPlanned=false)=>{
    if(!st||!sec)return;const k=String(st).slice(0,10),rawStart=String(st).slice(11,16),start=/^\d{2}:\d{2}$/.test(rawStart)?rawStart:'09:00',h=Number(sec)/3600;if(!Number.isFinite(h)||h<=0)return;
-   const cleanStart=String(start).match(/^\d{2}:\d{2}$/)?String(start):'09:00';
+   // Normalise l'heure et la durée importées : jamais de secondes/fractions dans l'affichage.
+   const cleanStart=String(start).match(/^(\d{2}):(\d{2})$/)?String(start):'09:00';
    const roundedHours=Math.round(h*20)/20;
    const cfg=Object.assign({},DEF,{dur:String(roundedHours),ride:cleanStart,sport:sport||'bike',watts:String(Math.round(Number(watts)||0)),...(pace?{pace:String(pace)}:{}),...(calories>0?{eeOverride:Math.round(Number(calories))}:{})});
-   const list=sessionList(k),sid=String(sourceId||'');
-   // Stable source ID makes repeated syncs idempotent.
-   let item=list.find(z=>z&&z.source==='intervals'&&z.sourceId&&String(z.sourceId)===sid);
-   if(isPlanned){
-    // If Intervals.icu still exposes a completed activity and its old planned
-    // event, keep the completed activity as the single source of truth.
-    const completed=findActualMatch(list,cfg);
-    if(completed){n++;return;}
-    if(!item){
-     item=list.find(z=>z&&z.source==='intervals'&&z.planned===true&&z.cfg&&normSport(z.cfg.sport)===normSport(cfg.sport)&&timeGap(z.cfg.ride,cfg.ride)!==null&&timeGap(z.cfg.ride,cfg.ride)<=30);
-    }
-    if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sid;item.planned=true;}
-    else list.push({id:'iv_'+String(sid||k+'_'+cleanStart).replace(/[^a-zA-Z0-9_-]/g,'_'),cfg,source:'intervals',sourceId:sid,planned:true});
-   }else{
-    if(item&&item.planned===false){
-     // Clean up a duplicate manual/planned entry left by an older sync version.
-     // Keep the already-imported activity and remove only its confidently
-     // matched planned counterpart.
-     const stalePlan=findPlannedMatch(list,cfg);
-     if(stalePlan&&stalePlan!==item){const ix=list.indexOf(stalePlan);if(ix>=0)list.splice(ix,1);}
-    }else if(!item){
-     // Completed activity replaces its matching manual OR Intervals-planned
-     // session. A same-day unique sport match is accepted even if duration or
-     // start differs; multiple same-sport sessions require a clear time match.
-     item=findPlannedMatch(list,cfg);
-    }
-    if(item){
-     item.cfg=cfg;item.source='intervals';item.sourceId=sid;item.planned=false;
-     item.replacedPlanned=true;
-    }else{
-     // Refresh an already imported activity with a nearby start if its source
-     // ID changed, but never merge two distinct same-sport workouts blindly.
-     const existing=findActualMatch(list,cfg);
-     if(existing){existing.cfg=cfg;existing.sourceId=sid;existing.planned=false;item=existing;}
-     else list.push({id:'iv_'+String(sid||k+'_'+cleanStart).replace(/[^a-zA-Z0-9_-]/g,'_'),cfg,source:'intervals',sourceId:sid,planned:false});
-    }
+   const list=sessionList(k);let item=list.find(z=>z.sourceId&&String(z.sourceId)===String(sourceId));
+   if(!item&&!isPlanned){
+    const mins=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})(?::.*)?$/);return m?Number(m[1])*60+Number(m[2]):null};
+    const actualMin=mins(cleanStart);
+    const normSport=v=>{v=String(v||'').toLowerCase();return /run|course/.test(v)?'run':/strength|weight|muscu/.test(v)?'strength':/swim|natation/.test(v)?'swim':/ski|nordic/.test(v)?'ski':'bike'};
+    // Une activité réalisée remplace une séance manuelle similaire : même sport,
+    // durée proche (±30 min) et horaire raisonnablement proche (jusqu'à 6 h).
+    item=list.find(z=>z&&z.cfg&&z.source!=='intervals'&&z.planned!==false&&normSport(z.cfg.sport)===normSport(cfg.sport)&&Math.abs((Number(z.cfg.dur)||0)-roundedHours)<=0.5&&actualMin!==null&&mins(z.cfg.ride)!==null&&Math.abs(mins(z.cfg.ride)-actualMin)<=360);
+    if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sourceId;item.planned=false;item.id=item.id||'iv_'+String(sourceId||k+'_'+cleanStart).replace(/[^a-zA-Z0-9_-]/g,'_');}
    }
+   if(!item)item=list.find(z=>z.source==='intervals'&&z.cfg&&z.cfg.ride===start&&z.cfg.sport===cfg.sport&&!!z.planned===!!isPlanned);
+   if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sourceId;item.planned=!!isPlanned;}
+   else list.push({id:'iv_'+String(sourceId||k+'_'+start).replace(/[^a-zA-Z0-9_-]/g,'_'),cfg,source:'intervals',sourceId:sourceId||'',planned:!!isPlanned});
    SESSIONS[k]=list;localStorage.setItem('gb27sessions',JSON.stringify(SESSIONS));
    if(!PLANS[k]||!Number(PLANS[k].dur))PLANS[k]=Object.assign({},cfg);
    n++;
