@@ -125,7 +125,7 @@ input,select,textarea{max-width:100%;min-width:0}
 <div class="hdr"><div class="bar"><div class="brand"><img class="brand-logo" src="./perfmaster-logo.png" alt="" aria-hidden="true"> PERFMASTER</div></div>
 <div class="dates" id="dates"><button class="dbtn" id="dprev">‹</button><button class="dbtn on" id="dlab"></button><button class="dbtn" id="dnext">›</button></div><div id="nx3" class="nx3"></div></div>
 <div class="view on" id="v-home"></div><div class="view" id="v-recup"></div><div class="view" id="v-course"></div><div class="view" id="v-cal"></div><div class="view" id="v-board"><div class="dash"><div class="dt"><span>Objectifs nutritifs du jour</span><span id="tk" style="color:var(--g)">0 / 0 kcal</span></div>
-<div class="mg" id="mg"></div><div class="ex">Glucides totaux = glucides des repas + ravitaillement pendant les séances, compté une seule fois.</div></div><div class="en" id="en"></div><div class="en" id="pmc"></div><div class="tl" id="tl"></div></div><div class="view" id="v-train"><div style="padding:1rem 1.4rem 0"><button class="btn b" style="margin:0" onclick="saveTrainingAndReturn()">✓ Sauvegarder l’entraînement</button></div>
+<div class="mg" id="mg"></div></div><div class="en" id="en"></div><div class="en" id="pmc"></div><div class="tl" id="tl"></div></div><div class="view" id="v-train"><div style="padding:1rem 1.4rem 0"><button class="btn b" style="margin:0" onclick="saveTrainingAndReturn()">✓ Sauvegarder l’entraînement</button></div>
 <div class="cfg"><div class="sh" id="sessionTitle">⚙️ Planification de la séance</div>
 <div class="fg">
 <div class="f"><label>Jour</label><input type="date" id="day"></div>
@@ -138,7 +138,7 @@ input,select,textarea{max-width:100%;min-width:0}
 <div class="f" id="enduranceIntensityWrap" style="display:none"><label>Intensité natation / ski de fond</label><select id="enduranceIntensity"><option value="easy">Facile · récupération / technique</option><option value="moderate" selected>Modérée · endurance régulière</option><option value="hard">Élevée · soutenue / intervalles</option></select></div>
 <div class="f" id="skiPaceWrap" style="display:none"><label>Allure ski de fond (min/km)</label><input type="text" id="skiPace" value="6:00" placeholder="6:00"></div>
 <div class="f" id="swimPaceWrap" style="display:none"><label>Allure natation (min/100 m)</label><input type="text" id="swimPace" value="2:00" placeholder="2:00"></div>
-<div class="f" id="wattsWrap"><label>Puissance cible (W)</label><input type="number" id="watts" value="205" min="0" step="1"></div><div class="f" id="ftpWrap"><label>FTP (W)</label><input type="number" id="ftp" value="280" min="1"></div><div class="f" id="paceWrap"><label>Allure course (min/km)</label><input type="text" id="pace" value="5:30" placeholder="5:30"></div>
+<div class="f" id="wattsWrap"><label>Puissance cible (W, estimation d’intensité)</label><input type="number" id="watts" value="0" min="0" step="1"></div><div class="f" id="ftpWrap"><label>FTP (W)</label><input type="number" id="ftp" value="280" min="1"></div><div class="f" id="paceWrap"><label>Allure course (min/km)</label><input type="text" id="pace" value="5:30" placeholder="5:30"></div>
 <div class="f full"><label>Spécificité 1 (vélo/course)</label><select id="s1"><option value="none">Aucune (endurance)</option><option value="vo2">VO2 max / intervalles</option><option value="tempo">Tempo / seuil</option><option value="sprint">Sprints / explosivité</option></select></div>
 <div class="f full"><label>Spécificité 2 (optionnelle)</label><select id="s2"><option value="none">Aucune</option><option value="tempo">Tempo / seuil</option><option value="sprint">Sprints</option><option value="vo2">VO2 max</option></select></div>
 </div>
@@ -202,7 +202,7 @@ const WT={bk:[4,3,3],lunch:[3,3,3],souper:[3,3,3],sn:[1.5,1.2,1],pre:[1.3,.5,.25
 const TK={bk:"bk",lunch:"meal",souper:"meal",sn:"sn",pre:"pre",rec:"rec",ev:"ev",light:"pre",bkrec:"bk"};
 const COL={bk:"c-t",lunch:"c-t",souper:"c-r",sn:"c-o",pre:"c-o",rec:"c-r",ev:"c-p",light:"c-o",bkrec:"c-t"};
 const WHY={bk:"Glucides complexes + protéines, fibres modérées pour bien démarrer.",lunch:"Assiette équilibrée : féculents, protéines maigres, légumes.",souper:"Repas de récupération : recharge du glycogène et réparation musculaire.",sn:"Collation plus légère que les repas principaux : maintient l’énergie sans surcharge digestive.",pre:"Peu de fibres et de lipides pour une digestion rapide avant l’effort.",rec:"Fenêtre de récupération : glucides + 20–40 g de protéines rapidement après la sortie.",ev:"Protéines à digestion lente pour la nuit, glucides modérés.",light:"Léger car le départ est proche : le reste du repas est reporté après la sortie.",bkrec:"Déjeuner reporté après la sortie : c’est ton vrai repas de récupération."};
-const TIPS={normal:"Mode normal : énergie de maintien estimée; glucides périodisés selon les séances et la fenêtre de 72 h.",affutage:"Affûtage : petit déficit limité aux journées non exigeantes; le carburant des séances clés et la récupération sont préservés.",performance:"Performance : priorité à la disponibilité glucidique avant, pendant et après les séances importantes; aucune hausse automatique des macros.",masse:"Prise de masse : léger surplus énergétique, protéines réparties dans la journée et glucides adaptés à la charge."};
+const TIPS={normal:"Mode normal : le carburant suit le travail à fournir (≈1,8 g/kg de protéines, glucides selon la charge).",affutage:"Affûtage = perte de poids : ≈ −400 kcal/jour sous ta dépense, protéines à 2,1 g/kg, glucides gardés autour de la séance.",performance:"Performance : +2 g/kg de glucides et +10 g/h en sortie pour viser l’intensité maximale.",masse:"Prise de masse : ≈ +350 kcal/jour au-dessus de ta dépense, protéines à 2,0 g/kg en 4–5 prises, glucides élevés autour de la séance."};
 let MODE="normal",PLAN=null,LOGS={},CFG={},PLANS={},SESSIONS={},ACTIVE_SESSION_ID=null,REC={},CM=new Date(),MEAL_PREFS={},MEAL_VARIANT=0,MEAL_VARIANTS={},CUSTOM_MEALS={},PROF={sex:'m',age:30,h:178,bf:0,pal:1.3,bmrm:0,name:'',ikey:'',iid:'0',bkC:0};
 try{CUSTOM_MEALS=JSON.parse(localStorage.getItem("gb27custommeals")||"{}");MEAL_PREFS=JSON.parse(localStorage.getItem("gb27mealprefs")||"{}");MEAL_VARIANTS=JSON.parse(localStorage.getItem("gb27mealvariants")||"{}");LOGS=JSON.parse(localStorage.getItem("gb27logs")||"{}");CFG=JSON.parse(localStorage.getItem("gb27cfg")||"{}");PLANS=JSON.parse(localStorage.getItem("gb27plans")||"{}");SESSIONS=JSON.parse(localStorage.getItem("gb27sessions")||"{}");REC=JSON.parse(localStorage.getItem("gb27rec")||"{}");PROF=Object.assign(PROF,JSON.parse(localStorage.getItem("gb27prof")||"{}"))}catch(e){}
 const food=(id,g)=>{const f=F[id];return{c:f[1]*g/100,p:f[2]*g/100,f:f[3]*g/100}};
@@ -251,189 +251,157 @@ function mealTemplatesFor(e,gd,index){
  return choices;
 }
 
-// Evidence-informed training and nutrition model.
-// Carbohydrate targets are periodised from the actual endurance workload,
-// strength work, and the previous/next training day (72 h planning window).
-// Intra-session carbohydrate is part of the daily total, never added twice.
-function nutritionSessionMetrics(cfg,kg,ftp){
- const c=cfg||{},sport=c.sport||'bike',dur=Math.max(0,Number(c.dur)||0);
- const quality=['vo2','tempo','sprint'].includes(c.s1)||['vo2','tempo','sprint'].includes(c.s2);
- if(!dur)return{sport,dur,if:0,tss:0,quality,strengthIntensity:0,intensity:0};
- if(sport==='strength'){
-  const strengthIntensity={light:.25,moderate:.5,hard:.8}[c.strengthIntensity||'moderate']||.5;
-  return{sport,dur,if:0,tss:0,quality,strengthIntensity,intensity:strengthIntensity};
- }
- let intensity=.75;
+// --- Moteur nutritionnel périodisé PERFMASTER (références UCI/ACSM/IOC) ---
+function sessionIntensityFactor(cfg,ftp){
+ const c=cfg||{},sport=c.sport||'bike',dur=Math.max(0,Number(c.dur)||0),q=((c.s1||'')+' '+(c.s2||'')).toLowerCase();
+ if(sport==='strength')return 0;
  if(sport==='bike'){
-  const raw=Number(c.watts)>0?Number(c.watts)/(Number(ftp)||280):.70;
-  intensity=Math.max(.45,Math.min(1.10,raw));
- }else if(sport==='swim') intensity=({easy:.55,moderate:.70,hard:.90}[c.enduranceIntensity||'moderate']||.70);
- else if(sport==='ski') intensity=({easy:.55,moderate:.75,hard:.95}[c.enduranceIntensity||'moderate']||.75);
- else if(sport==='run') intensity=quality?.90:.75; // no threshold pace is stored in this app; do not pretend pace alone is an intensity test
- if(quality)intensity=Math.max(intensity,.85);
- return{sport,dur,if:intensity,tss:dur*intensity*intensity*100,quality,strengthIntensity:0,intensity:intensity*intensity};
-}
-function nutritionFuelRate(m,mode,raceDay){
- if(!m||m.sport==='strength'||m.dur<.75)return 0;
- // During-session targets are based on duration AND relative intensity.
- // These are starting targets, not mandatory intakes for every athlete.
- const hard=m.if>=.82||m.quality||!!raceDay,moderate=m.if>=.65;
- let rate=0;
- if(m.dur<1)rate=hard?20:0;
- else if(m.dur<=1.5)rate=hard?45:moderate?30:0;
- else if(m.dur<=2.5)rate=hard?60:moderate?45:30;
- else if(m.dur<=3.5)rate=hard?75:moderate?60:45;
- else rate=hard?75:moderate?60:45;
- // Conservative sport-specific caps; higher intakes require demonstrated gut training and should not be auto-prescribed.
- if(m.sport==='run'||m.sport==='swim')rate=Math.min(rate,60);
- if(m.sport==='ski')rate=Math.min(rate,75);
- return Math.max(0,Math.min(75,Math.round(rate))); // conservative default without a documented gut-training/tolerance profile
-}
-function nutritionSessionsForDay(dayKey){
- const saved=SESSIONS&&SESSIONS[dayKey];
- if(Array.isArray(saved)){
-  const seenSources=new Set();
-  return saved.filter(x=>{
-   if(!x||!x.cfg||Number(x.cfg.dur)<=0)return false;
-   if(x.source==='intervals'&&x.sourceId){const id=String(x.sourceId);if(seenSources.has(id))return false;seenSources.add(id);}
-   return true;
-  }).map(x=>x.cfg);
+  const w=Math.max(0,Number(c.watts)||0),f=Math.max(1,Number(ftp)||280);
+  if(w>0)return Math.max(.45,Math.min(1.15,w/f));
+  if(/vo2|sprint/.test(q))return .95;if(/tempo|seuil/.test(q))return .86;return .68;
  }
- const legacy=PLANS&&PLANS[dayKey];
- return legacy&&Number(legacy.dur)>0?[legacy]:[];
-}
-function nutritionDayLoad(dayKey,kg,ftp){
- const metrics=nutritionSessionsForDay(dayKey).map(c=>nutritionSessionMetrics(c,kg,ftp));
- const endurance=metrics.filter(x=>x.sport!=='strength'),strength=metrics.filter(x=>x.sport==='strength');
- const eh=endurance.reduce((a,x)=>a+x.dur,0),sh=strength.reduce((a,x)=>a+x.dur,0);
- const tss=endurance.reduce((a,x)=>a+x.tss,0);
- const intensity=eh>0?endurance.reduce((a,x)=>a+x.dur*x.intensity,0)/eh:0;
- const quality=endurance.some(x=>x.quality)||strength.some(x=>x.strengthIntensity>=.8);
- return{enduranceHours:eh,strengthHours:sh,tss,intensity,quality,sessionCount:metrics.length};
-}
-function nutrition72hContext(dayKey,kg,ftp){
- const previous=nutritionDayLoad(addD(dayKey,-1),kg,ftp),next=nutritionDayLoad(addD(dayKey,1),kg,ftp);
- const previousRace=raceCtx(addD(dayKey,-1)).day,previousRaceDay=!!previousRace&&['A','a'].includes(previousRace.o);
- const rcx=raceCtx(dayKey),raceLoad=Math.max(0,Number(rcx.load)||0);
- // Recovery/refuelling pressure is scaled to the previous workload, not a fixed daily bonus.
- const previousRecovery=previousRaceDay?0.8:(previous.enduranceHours>=4||previous.tss>=250)?0.8:(previous.enduranceHours>=2.5||previous.tss>=160)?0.6:(previous.enduranceHours>=1.5||previous.strengthHours>=1.5||previous.quality)?0.35:0;
- // Preparation pressure reflects what is scheduled next; priority-race entries without
- // a duration remain a warning, not a fabricated race-day carbohydrate calculation.
- const scheduledPreparation=(next.enduranceHours>=4||next.tss>=250)?0.9:(next.enduranceHours>=3||next.tss>=180)?0.75:(next.enduranceHours>=2||next.tss>=120)?0.55:(next.enduranceHours>=1.25||next.strengthHours>=1.5||next.quality)?0.35:0;
- const racePreparation=raceLoad>=10?0.75:raceLoad>=9?0.6:raceLoad>=8?0.4:0;
- const nextPreparation=Math.max(scheduledPreparation,racePreparation);
- return{previous,next,previousRecovery,nextPreparation,raceLoad,raceDay:!!rcx.day&&['A','a'].includes(rcx.day.o),racePriority:rcx.day?.o==='A'?10:rcx.day?.o==='a'?9:0};
-}
-function evidenceMacroTargets(kg,energy,intra,mode,enduranceHours,strengthHours,intensityIndex,context){
- const aff=mode==='affutage',mass=mode==='masse',perf=mode==='performance';
- const bodyMass=Math.max(35,Number(kg)||70),eh=Math.max(0,Number(enduranceHours)||0),sh=Math.max(0,Number(strengthHours)||0);
- const energyKcal=Math.max(0,Number(energy)||0),intraG=Math.max(0,Math.round(Number(intra)||0)),ctx=context||{};
- const intensity=Math.max(0,Math.min(1,Number(intensityIndex)||0));
- // Protein is anchored to current endurance-sport evidence (1.6–2.1 g/kg/day).
- // Mixed endurance/strength work moves the target modestly upward, never by calories.
- let proteinKg=1.8;
- if(sh>0)proteinKg=1.9;
- if(sh>=1.5)proteinKg=2.0;
- if(aff)proteinKg=Math.max(proteinKg,2.0);
- if(mass)proteinKg=Math.max(proteinKg,1.9);
- proteinKg=Math.min(2.1,proteinKg);
- const protein=Math.round(proteinKg*bodyMass);
- // Energy goal: no aggressive deficit on demanding days; mass mode uses a modest surplus.
- const demanding=eh>=2.5||intensity>=.72||!!ctx.raceDay||Number(ctx.previousRecovery)>=.35||Number(ctx.nextPreparation)>=.30||Number(ctx.raceLoad)>=9;
- const deficit=aff&&!demanding?Math.min(200,Math.round(energyKcal*.05)):0;
- const surplus=mass?Math.min(200,Math.round(energyKcal*.05)):0;
- const targetKcal=Math.max(0,energyKcal-deficit+surplus);
- // Daily CHO bands are workload-based. They are NOT increased merely to fill an
- // estimated calorie total. The 72-hour context shifts the athlete within the band.
- const level=intensity<.32?0:intensity<.58?1:2;
- let lo,hi;
- if(eh<=0){if(sh>=1.5){lo=3.5;hi=5.5;}else if(sh>0){lo=3;hi=5.2;}else{lo=3;hi=5;}}
- else if(eh<=1){if(level===0){lo=3;hi=5;}else if(level===1){lo=5;hi=7;}else{lo=5.5;hi=7.5;}}
- else if(eh<=2){if(level===0){lo=4;hi=6;}else if(level===1){lo=5;hi=7;}else{lo=6;hi=8;}}
- else if(eh<=3){if(level===0){lo=6;hi=8;}else if(level===1){lo=7;hi=9;}else{lo=8;hi=10;}}
- else if(eh<=4){if(level===0){lo=7;hi=9;}else if(level===1){lo=8;hi=10;}else{lo=9;hi=11;}}
- else{if(level===0){lo=8;hi=10;}else if(level===1){lo=9;hi=11;}else{lo=10;hi=12;}if(eh>=4.5&&level===2&&Number(ctx.currentTss)>=300){lo=10;hi=12;}}
- if(eh<=0){
-  if(Number(ctx.previousRecovery)>=.6){lo=Math.max(lo,4.5);hi=Math.max(hi,6.5);}
-  const nx=ctx.next||{};
-  if(Number(ctx.raceLoad)>=9){lo=Math.max(lo,7.5);hi=Math.max(hi,10);}
-  else if(nx.enduranceHours>=4){const nextIsVeryHard=Number(nx.intensity)>=.58&&Number(nx.tss)>=250;lo=Math.max(lo,nextIsVeryHard?6.5:5.5);hi=Math.max(hi,nextIsVeryHard?8.5:7.5);}
-  else if(nx.enduranceHours>=3||nx.tss>=180){lo=Math.max(lo,5.5);hi=Math.max(hi,7.5);}
-  else if(nx.enduranceHours>=2||nx.tss>=120){lo=Math.max(lo,5);hi=Math.max(hi,7);}
-  else if(Number(ctx.nextPreparation)>=.35){lo=Math.max(lo,4);hi=Math.max(hi,6);}
+ if(sport==='run'){
+  if(/vo2|sprint/.test(q))return .92;if(/tempo|seuil/.test(q))return .84;return .72;
  }
- let desiredKg=lo+(hi-lo)*Math.max(0,Math.min(1,(intensity-.28)/(.74-.28)));
- if(sh>0)desiredKg+=Math.min(.25,sh*.15);
- desiredKg+=Math.min(.8,Math.max(0,Number(ctx.previousRecovery)||0)*.35)+Math.min(.8,Math.max(0,Number(ctx.nextPreparation)||0)*.45);
- if(perf&&eh>0)desiredKg=Math.max(desiredKg,lo+(hi-lo)*.6);
- desiredKg=Math.max(lo,Math.min(hi,desiredKg));
- const minCarbs=Math.max(Math.round(lo*bodyMass),intraG),maxCarbs=Math.max(minCarbs,Math.round(hi*bodyMass));
- let totalCarbs=Math.max(minCarbs,Math.min(maxCarbs,Math.round(desiredKg*bodyMass)));
- // If estimated energy requires more CHO, move upward only within the workload band.
- // This supports energy adequacy without pushing fat upward or exceeding the CHO range.
- const energyFitCarbs=targetKcal>0?Math.ceil((targetKcal-4*protein-9*(.9*bodyMass))/4):0;
- totalCarbs=Math.max(totalCarbs,Math.min(maxCarbs,Math.max(minCarbs,energyFitCarbs)));
- // FAT: set independently from estimated kcal to prevent inflated fat targets when
- // exercise expenditure is overestimated. This is a pragmatic app target (0.9–1.2 g/kg),
- // not a universal scientific requirement; energy adequacy and longer-term intake still matter.
- let fatKg=.9;
- if(eh>=1.5)fatKg+=.1;
- if(eh>=4)fatKg+=.1;
- if(sh>=1)fatKg+=.1;
- fatKg=Math.max(.9,Math.min(1.2,fatKg));
- let fat=Math.round(fatKg*bodyMass);
- // If this practical target would exceed 35% of a low estimated energy day, move toward
- // the lower end of the practical range. Never raise fat simply to fill the calorie gap.
- if(targetKcal>0&&fat*9/targetKcal>.35){fatKg=.8;fat=Math.round(fatKg*bodyMass);}
- const mealCarbs=Math.max(0,totalCarbs-intraG),kcal=4*protein+4*totalCarbs+9*fat;
- const fatShare=targetKcal>0?(fat*9/targetKcal):0,energyGap=Math.round(targetKcal-kcal);
- const fatOutsideRange=targetKcal>0&&(fatShare<.18||fatShare>.36);
- const def=Math.round(energyKcal-targetKcal),notes=[];
- const energyGapLimit=Math.max(150,targetKcal*.04);
- if(energyGap>=energyGapLimit)notes.push(`Les macros couvrent ${kcal} kcal, soit ${energyGap} kcal de moins que la dépense estimée (${Math.round(targetKcal)} kcal). Les glucides restent liés à la charge et les lipides au poids; vérifie l'estimation de dépense et les données de séance plutôt que de gonfler artificiellement les macros.`);
- else if(energyGap<=-energyGapLimit)notes.push(`Les macros couvrent ${kcal} kcal, soit ${Math.abs(energyGap)} kcal de plus que la dépense estimée (${Math.round(targetKcal)} kcal). Vérifie le profil, le plan et l'estimation de dépense.`);
- if(fatShare>0&&fatShare<.18)notes.push(`Les lipides représentent environ ${Math.round(fatShare*100)} % de l'énergie estimée. La cible n'est pas gonflée automatiquement; évite toutefois de maintenir une proportion très basse sur plusieurs jours et fais vérifier l'apport énergétique global.`);
- if(fatShare>.36)notes.push('La proportion lipidique estimée est élevée par rapport à l’énergie du jour; vérifie la dépense et les aliments enregistrés.');
- if(intraG>Math.round(hi*bodyMass))notes.push('Le ravitaillement intra-séance dépasse la plage quotidienne habituelle : charge exceptionnelle à individualiser.');
- if(ctx.raceDay&&eh<=0)notes.push('Course prioritaire inscrite, mais aucune durée de séance n’est renseignée. Planifie ou synchronise la course pour calculer le ravitaillement et les besoins énergétiques.');
- return{protein,carbs:mealCarbs,fat,kcal,totalCarbs,def,bodyMass,proteinKg,carbKg:bodyMass>0?totalCarbs/bodyMass:0,fatKg:bodyMass>0?fat/bodyMass:0,fatEnergyShare:fatShare,targetKcal,energyGap,fatOutsideRange,minCarbKg:lo,maxCarbKg:hi,intraG,desiredCarbKg:desiredKg,previousRecovery:ctx.previousRecovery||0,nextPreparation:ctx.nextPreparation||0,note:notes.join(' ')};
+ const level=c.enduranceIntensity||'moderate';
+ return sport==='swim'?({easy:.58,moderate:.72,hard:.9}[level]||.72):({easy:.58,moderate:.74,hard:.92}[level]||.74);
 }
-function allocateNutritionMeals(ev,macro,dayKey,sessions){
- if(!Array.isArray(ev)||!ev.length)return;
- const asMinutes=v=>{const m=String(v||'09:30').match(/^(\d{1,2}):(\d{2})$/);return m?Number(m[1])*60+Number(m[2]):570;};
- const sessionListForMeals=(sessions||[]).map(x=>x&&x.cfg?x.cfg:x).filter(c=>c&&Number(c.dur)>0&&c.sport!=='strength');
- const carbWeights=ev.map(e=>Math.max(.1,Number(e.c)||0));
- // Move carbohydrate emphasis toward meals that actually precede/follow each
- // session. Existing pre/recovery meal weights are retained as the baseline.
- sessionListForMeals.forEach(c=>{
-  const start=asMinutes(c.ride),end=start+Number(c.dur)*60,m=nutritionSessionMetrics(c,macro.bodyMass||70,Number($('ftp')?.value)||280);
-  ev.forEach((e,i)=>{
-   const before=start-Number(e.t),after=Number(e.t)-end;
-   if(before>=0&&before<=240){const proximity=1-before/300;const boost=(m.dur>=2||m.if>=.82||m.quality)?0.7:0.35;carbWeights[i]+=Math.max(4,macro.carbs*0.06)*Math.max(0,proximity)*boost;}
-   if(after>=0&&after<=240){const proximity=1-after/300;const boost=(m.dur>=2||m.if>=.82||m.quality)?0.65:0.3;carbWeights[i]+=Math.max(4,macro.carbs*0.06)*Math.max(0,proximity)*boost;}
-  });
- });
- const allocate=(key,total,index)=>{
-  let weights=key==='c'?carbWeights:ev.map(e=>Math.max(0,Number(e[key])||0));
-  if(weights.reduce((a,b)=>a+b,0)<=0)weights=ev.map(e=>Math.max(0.1,Number(WT[e.type]?.[index])||1));
-  const sum=weights.reduce((a,b)=>a+b,0),raw=weights.map(w=>total*w/sum),vals=raw.map(Math.floor);
-  let remaining=Math.max(0,total-vals.reduce((a,b)=>a+b,0));
-  const order=raw.map((v,i)=>({i,r:v-vals[i]})).sort((a,b)=>b.r-a.r);
-  for(let i=0;i<remaining&&i<order.length;i++)vals[order[i].i]++;
-  ev.forEach((e,i)=>{e[key]=vals[i]||0;});
- };
- allocate('c',macro.carbs,0);allocate('p',macro.protein,1);allocate('f',macro.fat,2);
- ev.forEach((e,i)=>{e.kcal=Math.round(e.c*4+e.p*4+e.f*9);if(!e.custom)e.opts=mealTemplatesFor(e,dayKey,i).map(t=>build(t,{c:e.c,p:e.p,f:e.f},!!e.bet));});
+function sessionFuelRate(cfg,ftp,mode){
+ const c=cfg||{},sport=c.sport||'bike',dur=Math.max(0,Number(c.dur)||0);
+ if(sport==='strength'||dur<1)return 0;
+ const q=((c.s1||'')+' '+(c.s2||'')).toLowerCase(),IF=sessionIntensityFactor(c,ftp),quality=/vo2|tempo|sprint/.test(q);
+ const hard=Math.max(IF,quality?.88:0)>=.85,moderate=IF>=.67||quality;
+ let rate;
+ if(dur<=1.5)rate=hard?45:moderate?30:0;
+ else if(dur<=2.5)rate=hard?60:moderate?45:30;
+ else if(dur<=4)rate=hard?75:moderate?60:45;
+ else rate=hard?90:moderate?75:60;
+ // Practical sport-specific ceilings for non-cycling sessions; higher intakes need individual gut training.
+ if(sport==='run')rate=Math.min(60,rate);
+ if(sport==='swim')rate=Math.min(60,rate);
+ if(sport==='ski')rate=Math.min(75,rate);
+ return Math.max(0,Math.round(rate/5)*5);
 }
+function estimateSessionNetCalories(cfg,kg,bmr,ftp,isIntervals){
+ const c=cfg||{},dur=Math.max(0,Number(c.dur)||0),sport=c.sport||'bike';if(!dur)return 0;
+ const rest=(Number(bmr)||0)*dur/24;
+ // Intervals calories are treated like the app's previous gross-calorie convention.
+ if(Number(c.eeOverride)>0)return Math.max(0,Number(c.eeOverride)-rest);
+ const IF=sessionIntensityFactor(c,ftp);let gross=0;
+ if(sport==='bike'){
+  const watts=Math.max(0,Number(c.watts)||0);
+  // Mechanical power is used only for imported completed activities (measured average power),
+  // never for a manually planned target-power field.
+  if(isIntervals&&watts>0)gross=watts*dur*3600/1000/0.24/4.184;
+  else {const met=IF<.60?6:IF<.75?7:IF<.85?8:9.5;gross=kg*met*dur;}
+ }else if(sport==='run'){
+  const m=String(c.pace||'5:30').match(/^(\d{1,2}):(\d{1,2})$/),pace=m?(Number(m[1])*60+Number(m[2]))/60:5.5;
+  gross=kg*(60/Math.max(2.5,pace))*dur;
+ }else if(sport==='swim'||sport==='ski'){
+  const level=c.enduranceIntensity||'moderate',met=sport==='swim'?({easy:6,moderate:8,hard:10}[level]||8):({easy:6,moderate:8,hard:11}[level]||8);
+  const paceText=String(sport==='swim'?(c.swimPace||'2:00'):(c.skiPace||'6:00')),m=paceText.match(/^(\d{1,2}):(\d{2})$/),pace=m?(Number(m[1])*60+Number(m[2]))/60:(sport==='swim'?2:6);
+  const factor=sport==='swim'?Math.max(.85,Math.min(1.15,2/Math.max(.8,pace))):Math.max(.8,Math.min(1.25,6/Math.max(2.5,pace)));
+  gross=kg*met*factor*dur;
+ }else{
+  const level=c.strengthIntensity||'moderate',met=level==='light'?3.5:level==='hard'?6:5;gross=kg*met*dur;
+ }
+ return Math.max(0,gross-rest);
+}
+function nutritionLoad(entries,ftp){
+ const rows=(entries||[]).filter(x=>x&&x.cfg&&Number(x.cfg.dur)>0),end=rows.filter(x=>(x.cfg.sport||'bike')!=='strength'),str=rows.filter(x=>(x.cfg.sport||'bike')==='strength');
+ const hours=end.reduce((n,x)=>n+Number(x.cfg.dur||0),0),strengthHours=str.reduce((n,x)=>n+Number(x.cfg.dur||0),0);
+ const weighted=end.reduce((n,x)=>n+sessionIntensityFactor(x.cfg,ftp)*Number(x.cfg.dur||0),0),avgIF=hours?weighted/hours:0;
+ const tss=end.reduce((n,x)=>{const d=Number(x.cfg.dur)||0,IF=sessionIntensityFactor(x.cfg,ftp);return n+d*IF*IF*100;},0);
+ const quality=end.some(x=>/vo2|tempo|sprint/i.test((x.cfg.s1||'')+' '+(x.cfg.s2||'')));
+ const strengthHard=str.some(x=>(x.cfg.strengthIntensity||'moderate')==='hard');
+ return{hours,strengthHours,avgIF,tss,quality,strengthHard,count:rows.length};
+}
+function nutritionDayEntries(day){
+ const has=Object.prototype.hasOwnProperty.call(SESSIONS,day)&&Array.isArray(SESSIONS[day]);
+ let rows=has?SESSIONS[day]:[];
+ if(!rows.length&&PLANS[day]&&Number(PLANS[day].dur)>0)rows=[{id:'legacy_'+day,cfg:PLANS[day],planned:true}];
+ return rows.filter(x=>x&&x.cfg&&Number(x.cfg.dur)>0);
+}
+function nutrition72hContext(dayKey,currentEntries,ftp){
+ const prevDay=addD(dayKey,-1),nextDay=addD(dayKey,1),confirmedLog=(LOGS[prevDay]||[]).some(x=>x&&x.m==='ride');
+ // The 72 h window is centred on the selected day: previous day, selected day, next day.
+ // Past manual plans are not presumed completed; only Intervals/completed/logged sessions count.
+ const previous=nutritionDayEntries(prevDay).filter(x=>x.completed===true||(x.source==='intervals'&&x.planned===false)||confirmedLog);
+ const next=nutritionDayEntries(nextDay).filter(x=>x.planned!==false||x.source==='intervals');
+ const p=nutritionLoad(previous,ftp),n=nutritionLoad(next,ftp),cur=nutritionLoad(currentEntries,ftp);
+ const mins=s=>{const m=String(s||'09:00').match(/^(\d{1,2}):(\d{2})$/);return m?Number(m[1])*60+Number(m[2]):540;};
+ const first=arr=>arr.length?Math.min(...arr.map(x=>mins(x.cfg.ride))):null;
+ const last=arr=>arr.length?Math.max(...arr.map(x=>mins(x.cfg.ride)+Number(x.cfg.dur||0)*60)):null;
+ const currentLast=last(currentEntries||[]),nextFirst=first(next),previousLast=last(previous),currentFirst=first(currentEntries||[]);
+ const hoursToNext=currentLast!==null&&nextFirst!==null?(1440-currentLast+nextFirst):null;
+ const hoursFromPrevious=previousLast!==null&&currentFirst!==null?(1440-previousLast+currentFirst):null;
+ return{windowHours:72,previousHours:p.hours,previousIF:p.avgIF,previousTSS:p.tss,previousConfirmed:previous.length>0,nextHours:n.hours,nextIF:n.avgIF,nextTSS:n.tss,nextPlanned:next.length>0,hoursToNext,hoursFromPrevious,currentHours:cur.hours};
+}
+function calculateDailyNutrition(kg,energy,intra,mode,load,ctx){
+ const body=Math.max(35,Math.min(200,Number(kg)||70)),endurance=load.hours||0,strength=load.strengthHours||0;
+ const deficit=mode==='affutage'?400:mode==='masse'?-350:0,energyGoal=Math.max(0,(Number(energy)||0)-deficit);
+ const proteinKg=mode==='affutage'?2.0:(strength>0?2.0:1.8),protein=Math.round(body*proteinKg);
+ let minCarbKg,maxCarbKg;
+ if(endurance<=0){if(strength>0){minCarbKg=3.5;maxCarbKg=5.5;}else{minCarbKg=3.0;maxCarbKg=5.0;}}
+ else if(endurance<=1){minCarbKg=4.0;maxCarbKg=6.5;}
+ else if(endurance<=2){minCarbKg=5.0;maxCarbKg=8.0;}
+ else if(endurance<=3){minCarbKg=6.0;maxCarbKg=9.5;}
+ else if(endurance<=4){minCarbKg=7.0;maxCarbKg=11.5;}
+ else if(endurance<=5){minCarbKg=8.0;maxCarbKg=12.0;}
+ else{minCarbKg=9.0;maxCarbKg=12.5;}
+ const intensityPosition=endurance>0?Math.max(0,Math.min(1,(load.avgIF-.55)/.40)):.22;
+ let workloadCarbKg=minCarbKg+(maxCarbKg-minCarbKg)*(.05+.65*intensityPosition);
+ if(load.quality)workloadCarbKg+=.25;
+ if(load.strengthHard)workloadCarbKg+=.15;
+ // 72 h preparation/recovery modifier: modest, capped, never adds a second day's full quota.
+ let contextBoost=0;
+ if(ctx){
+  if(ctx.previousHours>=3)contextBoost+=.45;else if(ctx.previousHours>=1.5)contextBoost+=.25;
+  if(ctx.previousIF>=.85)contextBoost+=.15;
+  if(ctx.hoursFromPrevious!==null&&ctx.hoursFromPrevious<8)contextBoost+=.35;
+  if(ctx.nextHours>=3)contextBoost+=.45;else if(ctx.nextHours>=1.5)contextBoost+=.25;
+  if(ctx.nextIF>=.85)contextBoost+=.15;
+  if(ctx.hoursToNext!==null&&ctx.hoursToNext<8)contextBoost+=.35;
+ }
+ workloadCarbKg=Math.max(minCarbKg,Math.min(maxCarbKg,workloadCarbKg+Math.min(1.0,contextBoost)));
+ // Energy must balance in normal mode without forcing one macro to absorb an implausible remainder.
+ // Start with the workload-based carbohydrate target, then solve fat as the residual while
+ // respecting the broad 20–35% energy range. The carbohydrate ceiling is a guardrail, not a prescription.
+ const intraCarbs=Math.max(0,Math.round(Number(intra)||0));
+ const minFatKcal=energyGoal*.20,maxFatKcal=energyGoal*.35,preferredFatKcal=energyGoal*.22;
+ const carbsAtPreferredFat=body>0?(energyGoal-preferredFatKcal-4*protein)/(4*body):0;
+ const carbsAtMinFat=body>0?(energyGoal-minFatKcal-4*protein)/(4*body):0;
+ const requestedCarbKg=Math.max(workloadCarbKg,carbsAtPreferredFat);
+ let finalCarbKg=Math.min(maxCarbKg,Math.max(0,requestedCarbKg));
+ // If a workload floor would push dietary fat below 20% energy, lower the food-carbohydrate target
+ // to the energy-compatible ceiling. Intra-session carbs remain protected and included once.
+ finalCarbKg=Math.min(finalCarbKg,Math.max(0,carbsAtMinFat));
+ let totalCarbs=Math.max(intraCarbs,Math.round(finalCarbKg*body));
+ let fatKcal=energyGoal-4*protein-4*totalCarbs;
+ if(fatKcal<minFatKcal){
+   totalCarbs=Math.max(intraCarbs,Math.floor(Math.max(0,(energyGoal-4*protein-minFatKcal)/4)));
+   fatKcal=energyGoal-4*protein-4*totalCarbs;
+ }
+ const fat=Math.max(0,Math.round(Math.max(minFatKcal,Math.min(maxFatKcal,fatKcal))/9));
+ const mealCarbs=Math.max(0,totalCarbs-intraCarbs),kcal=Math.round(4*totalCarbs+4*protein+9*fat),energyGap=Math.round(energyGoal-kcal);
+ const fatFraction=energyGoal>0?(9*fat/energyGoal):0;
+ return{protein,proteinKg,carbs:mealCarbs,totalCarbs,intraCarbs,fat,fatFraction,kcal,energyGoal,energyGap,carbKg:totalCarbs/body,minCarbKg,maxCarbKg,workloadCarbKg,contextBoost:Math.min(1.0,contextBoost),deficit};
+}
+// --- Fin du moteur nutritionnel périodisé ---
+
 function gen(gd){gd=gd||$('day').value;
- const kg=+$("kg").value||70,W=tm($("wake").value),dur=Math.max(0,+$("dur").value||0),sport=$("sport").value||"bike",rest=dur==0,R=rest?1380:tm($("ride").value),watts=sport==="bike"?(+$("watts").value||0):0,
- sp=[$("s1").value,$("s2").value].filter(x=>x!="none"),hasQ=sp.some(x=>["vo2","tempo","sprint"].includes(x)),muscu=sport==="strength",
- aff=MODE=="affutage",perf=MODE=="performance",mass=MODE=="masse",B=W+15,E=R+dur*60;
+ const kg=+$('kg').value||70,W=tm($('wake').value),dur=Math.max(0,+$('dur').value||0),sport=$('sport').value||'bike',rest=dur===0,R=rest?1380:tm($('ride').value),watts=sport==='bike'?(+$('watts').value||0):0,
+ sp=[$('s1').value,$('s2').value].filter(x=>x!=='none'),hasQ=sp.some(x=>['vo2','tempo','sprint'].includes(x)),muscu=sport==='strength',
+ aff=MODE==='affutage',perf=MODE==='performance',mass=MODE==='masse',B=W+15,E=R+dur*60;
  const rcx=raceCtx(gd),rd=!!(rcx.day&&['A','a'].includes(rcx.day.o)),ftp=+$('ftp').value||280;
- const currentCfg={sport,dur,watts,pace:$('pace').value,swimPace:$('swimPace')?.value,skiPace:$('skiPace')?.value,enduranceIntensity:$('enduranceIntensity')?.value,strengthIntensity:$('strengthIntensity')?.value,s1:$('s1').value,s2:$('s2').value};
- const sm=nutritionSessionMetrics(currentCfg,kg,ftp),rate=nutritionFuelRate(sm,MODE,rd),TSS=sm.tss,intraC=Math.round(rate*dur);
- const BMR=bmrCalc(kg),NE=Math.round(BMR*PROF.pal),exerciseKcal=(()=>{if(sport==="bike")return watts>0?(watts*dur*3.6)/(0.24*4.184):kg*7*dur;if(sport==="run"){const m=String($("pace").value||"5:30").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:5.5;return kg*(60/Math.max(2.5,pace))*dur;}const level=$("enduranceIntensity")?.value||"moderate",metMap={easy:6,moderate:8,hard:10};if(sport==="swim"){const m=String($("swimPace")?.value||"2:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:2;const paceFactor=Math.max(.85,Math.min(1.15,2/Math.max(.8,pace)));return kg*(metMap[level]||8)*paceFactor*dur;}if(sport==="ski"){const m=String($("skiPace")?.value||"6:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:6;const paceFactor=Math.max(.8,Math.min(1.25,6/Math.max(2.5,pace)));return kg*({easy:6,moderate:8,hard:11}[level]||8)*paceFactor*dur;}const intensity=$("strengthIntensity")?.value||"moderate";return kg*({light:3.5,moderate:5,hard:6}[intensity]||5)*dur;})(),EE=Math.round(NE+(rest?0:Math.max(0,exerciseKcal-BMR*dur/24))),EEFinal=Math.round((PLANS[gd]&&PLANS[gd].eeOverride>0)?NE+Math.max(0,PLANS[gd].eeOverride-BMR*dur/24):EE);
- const ctx72=nutrition72hContext(gd,kg,ftp);ctx72.currentTss=sm.tss;const macro=evidenceMacroTargets(kg,EEFinal,intraC,MODE,sport==="strength"?0:dur,sport==="strength"?dur:0,sm.intensity,ctx72),Pt=macro.protein,offC=macro.carbs,Ft=macro.fat,def=macro.def;
+ const cfg={sport,dur:String(dur),ride:$('ride').value||'09:30',watts:String(watts),pace:$('pace').value||'5:30',swimPace:$('swimPace')?.value||'2:00',skiPace:$('skiPace')?.value||'6:00',enduranceIntensity:$('enduranceIntensity')?.value||'moderate',strengthIntensity:$('strengthIntensity')?.value||'moderate',s1:$('s1').value,s2:$('s2').value};
+ const IF=sessionIntensityFactor(cfg,ftp),TSS=rest||muscu?0:dur*IF*IF*100;
+ const savedCurrent=(SESSIONS[gd]||[]).find(x=>String(x.id)===String(ACTIVE_SESSION_ID)),isIntervals=!!(savedCurrent&&savedCurrent.source==='intervals'&&savedCurrent.planned===false);
+ const rate=sessionFuelRate(cfg,ftp,MODE),intraC=Math.round(rate*dur),BMR=bmrCalc(kg),NE=Math.round(BMR*PROF.pal);
+ const exerciseKcal=estimateSessionNetCalories(cfg,kg,BMR,ftp,isIntervals),EE=Math.round(NE+exerciseKcal),EEFinal=Math.round((PLANS[gd]&&PLANS[gd].eeOverride>0)?NE+Math.max(0,Number(PLANS[gd].eeOverride)-BMR*dur/24):EE);
+ const currentEntries=dur>0?[{id:savedCurrent?.id||'primary',cfg,source:savedCurrent?.source||'manual',planned:savedCurrent?.planned!==false}]:[];
+ const load=nutritionLoad(currentEntries,ftp),ctx=nutrition72hContext(gd,currentEntries,ftp),macro=calculateDailyNutrition(kg,EEFinal,intraC,MODE,load,ctx);
+ const Pt=macro.protein,offC=macro.carbs,Ft=macro.fat,def=macro.def;
  // --- horaires ---
  const ev=[];const add=(t,type,label,x)=>ev.push(Object.assign({t:Math.round(t/5)*5,type,label},x));
  let needL=true;
@@ -483,11 +451,10 @@ function gen(gd){gd=gd||$('day').value;
  // Repas personnalisés ajoutés via le bouton + : conservés par date.
  const custom=(CUSTOM_MEALS[gd]||[]).map(x=>Object.assign({},x,{opts:[],custom:true}));
  ev.push(...custom);ev.sort((a,b)=>a.t-b.t);
- allocateNutritionMeals(ev,macro,gd,[{cfg:currentCfg,id:"primary"}]);
- const sessionStart=$('ride').value||'09:30';
- const sessionFuel=dur>0&&sport!=='strength'?[{id:'primary',sport,dur,rate,total:intraC,start:sessionStart}]:[];
- const sessions=dur>0?[{id:'primary',sport,start:sessionStart,dur,netKcal:Math.max(0,EEFinal-NE)}]:[];
- return{ev,R,E,dur,rate,intraC,sessionFuel,sessions,kg,EE:EEFinal,BMR,NE,rest,rcx,def,TSS:Math.round(TSS),tgt:{kcal:macro.kcal,c:macro.totalCarbs,p:Pt,f:Ft},hasQ,watts,sport,macroMeta:macro,macroEnergyGap:macro.energyGap,macroNote:macro.note};
+ const mealTotals=ev.reduce((a,e)=>({c:a.c+(Number(e.c)||0),p:a.p+(Number(e.p)||0),f:a.f+(Number(e.f)||0)}),{c:0,p:0,f:0});
+ const sessionFuel=dur>0&&sport!=='strength'?[{id:savedCurrent?.id||'primary',sport,dur,rate,total:intraC,start:cfg.ride}]:[];
+ const sessions=dur>0?[{id:savedCurrent?.id||'primary',sport,start:cfg.ride,dur,netKcal:exerciseKcal}]:[];
+ return{ev,R,E,dur,rate,intraC,sessionFuel,sessions,kg,EE:EEFinal,BMR,NE,rest,rcx,def,TSS:Math.round(TSS),energyMacroGap:macro.energyGap,macroCarbKg:macro.carbKg,nutrition72h:ctx,tgt:{kcal:Math.round(4*(mealTotals.c+intraC)+4*mealTotals.p+9*mealTotals.f),c:mealTotals.c+intraC,p:mealTotals.p,f:mealTotals.f},hasQ,watts,sport};
 }
 function intraInfo(P){
  const hot=$("hot").checked,cold=$("cold").checked&&!hot,kg=P.kg;
@@ -545,62 +512,32 @@ function save(){try{const cfg=getCfg(),dk=$("day").value;PLANS[dk]=cfg;if(ACTIVE
 function toast(m){const t=$("ts");t.textContent=m;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),1800)}
 function count(el,v,suf){const a=parseFloat(el.dataset.v||0),t0=performance.now();el.dataset.v=v;(function s(n){const k=Math.min(1,(n-t0)/500);el.textContent=Math.round(a+(v-a)*k)+suf;if(k<1)requestAnimationFrame(s)})(t0)}
 function applyMultiSessionEnergy(P,dayKey){
- // Recompute the exercise contribution from every saved session on this day.
- // The editor may display one session at a time, but the daily expenditure must include all of them.
  const rawSessions=sessionList(dayKey).filter(x=>x&&x.cfg&&Number(x.cfg.dur)>0);
- // Garder chaque séance distincte, même si plusieurs séances du même sport sont prévues.
- // Seuls les doublons stricts d'une même activité synchronisée (même sourceId) sont écartés.
  const seenSources=new Set();
  const sessions=rawSessions.filter(x=>{if(x.source==='intervals'&&x.sourceId){const k=String(x.sourceId);if(seenSources.has(k))return false;seenSources.add(k);}return true;});
  if(!sessions.length)return P;
- const kg=Number($("kg").value)||P.kg||70, bmr=bmrCalc(kg), ftp=Number($("ftp").value)||280;
- const workoutKcal=c=>{
-  const dur=Math.max(0,Number(c.dur)||0),sport=c.sport||'bike'; if(!dur)return 0;
-  if(Number(c.eeOverride)>0)return Math.max(0,Number(c.eeOverride)-bmr*dur/24);
-  let raw=0;
-  if(sport==='bike'){
-   const watts=Math.max(0,Number(c.watts)||0);
-   raw=watts>0?(watts*dur*3600/1000/0.24/4.184):kg*7*dur;
-  }else if(sport==='run'){
-   const m=String(c.pace||'5:30').match(/^(\d{1,2}):(\d{1,2})$/),min=m?(Number(m[1])*60+Number(m[2]))/60:5.5;
-   raw=kg*(60/Math.max(2.5,min))*dur;
-  }else if(sport==='swim'||sport==='ski'){const level=c.enduranceIntensity||'moderate',met=sport==='swim'?({easy:6,moderate:8,hard:10}[level]||8):({easy:6,moderate:8,hard:11}[level]||8),paceText=String(sport==='swim'?(c.swimPace||'2:00'):(c.skiPace||'6:00')),m=paceText.match(/^(\d{1,2}):(\d{2})$/),pace=m?(Number(m[1])*60+Number(m[2]))/60:(sport==='swim'?2:6),factor=sport==='swim'?Math.max(.85,Math.min(1.15,2/Math.max(.8,pace))):Math.max(.8,Math.min(1.25,6/Math.max(2.5,pace)));raw=kg*met*factor*dur;}else{
-   const intensity=c.strengthIntensity||'moderate',met=intensity==='light'?3.5:intensity==='hard'?6:5;
-   raw=kg*met*dur;
-  }
-  return Math.max(0,raw-bmr*dur/24);
- };
- const added=sessions.reduce((sum,x)=>sum+workoutKcal(x.cfg),0);
- const newEE=Math.round((Number(P.NE)||0)+added);
- // Do not double count the session currently loaded in the editor: replace the editor's single-session EE with the saved-day total.
- P.EE=newEE; P.exerciseKcal=Math.max(0,newEE-(Number(P.NE)||0)); P.sessionCount=sessions.length;
- // Recalculate the DAILY nutrition target from every session, not the session
- // currently open in the editor. Exercise calories are net of resting calories.
- const activeEntries=sessions.filter(x=>x&&x.cfg&&Number(x.cfg.dur)>0),active=activeEntries.map(x=>x.cfg);
- const mode=MODE,sessionFuel=[],metrics=[];let totalIntra=0,totalTSS=0;
- const currentRace=raceCtx(dayKey),isRaceDay=!!currentRace.day&&['A','a'].includes(currentRace.day.o);
- for(const entry of activeEntries){
-  const c=entry.cfg||{},m=nutritionSessionMetrics(c,kg,ftp),rate=nutritionFuelRate(m,mode,isRaceDay),sessionTotal=Math.round(rate*m.dur);
-  metrics.push(m);totalTSS+=m.tss;totalIntra+=sessionTotal;
-  sessionFuel.push({id:entry.id,sport:m.sport,dur:m.dur,rate,total:sessionTotal,start:c.ride||'09:30'});
- }
- const endurance=metrics.filter(x=>x.sport!=='strength'),strength=metrics.filter(x=>x.sport==='strength');
- const enduranceHours=endurance.reduce((a,x)=>a+x.dur,0),strengthHours=strength.reduce((a,x)=>a+x.dur,0);
- const intensityIndex=enduranceHours>0?endurance.reduce((a,x)=>a+x.dur*x.intensity,0)/enduranceHours:strength.reduce((a,x)=>Math.max(a,x.strengthIntensity),0);
- const ctx72=nutrition72hContext(dayKey,kg,ftp);ctx72.currentTss=totalTSS;const macro=evidenceMacroTargets(kg,P.EE,totalIntra,mode,enduranceHours,strengthHours,intensityIndex,ctx72);
- const protein=macro.protein,carbs=macro.carbs,fat=macro.fat,def=macro.def;
- // Allocate exactly the meal portion of the targets; intra-session CHO is separate.
- allocateNutritionMeals(P.ev,macro,dayKey,activeEntries);
- P.intraC=totalIntra;P.rate=sessionFuel.length===1?(sessionFuel[0]?.rate||0):0;P.sessionFuel=sessionFuel;
- P.sessions=activeEntries.map((entry,i)=>({id:entry.id,sport:entry.cfg.sport||'bike',start:entry.cfg.ride||'09:30',dur:Number(entry.cfg.dur)||0,netKcal:workoutKcal(entry.cfg)}));
- P.TSS=Math.round(totalTSS);P.def=def;P.hasQ=metrics.some(x=>x.quality);P.macroMeta=macro;P.macroEnergyGap=macro.energyGap;P.macroNote=macro.note;
- P.tgt={kcal:macro.kcal,c:macro.totalCarbs,p:protein,f:fat};
+ const kg=Number($('kg').value)||P.kg||70,bmr=bmrCalc(kg),ftp=Number($('ftp').value)||280;
+ const workoutKcal=x=>estimateSessionNetCalories(x.cfg,kg,bmr,ftp,x.source==='intervals'&&x.planned===false);
+ const added=sessions.reduce((sum,x)=>sum+workoutKcal(x),0),newEE=Math.round((Number(P.NE)||0)+added);
+ P.EE=newEE;P.exerciseKcal=Math.max(0,newEE-(Number(P.NE)||0));P.sessionCount=sessions.length;
+ const activeEntries=sessions.filter(x=>x&&x.cfg&&Number(x.cfg.dur)>0),active=activeEntries.map(x=>x.cfg),load=nutritionLoad(activeEntries,ftp),ctx=nutrition72hContext(dayKey,activeEntries,ftp);
+ let totalIntra=0;const sessionFuel=[];
+ activeEntries.forEach(entry=>{const c=entry.cfg,dur=Math.max(0,Number(c.dur)||0),sport=c.sport||'bike',rate=sessionFuelRate(c,ftp,MODE),total=Math.round(rate*dur);totalIntra+=total;sessionFuel.push({id:entry.id,sport,dur,rate,total,start:c.ride||'09:30'});});
+ const macro=calculateDailyNutrition(kg,P.EE,totalIntra,MODE,load,ctx);
+ const protein=macro.protein,carbs=macro.carbs,fat=macro.fat;
+ const distribute=(key,total)=>{const weights=P.ev.map(e=>Math.max(0,Number(e[key])||0)),sum=weights.reduce((a,b)=>a+b,0);P.ev.forEach((e,i)=>{e[key]=sum>0?Math.round(total*weights[i]/sum):Math.round(total/Math.max(1,P.ev.length));});};
+ distribute('c',carbs);distribute('p',protein);distribute('f',fat);
+ P.ev.forEach((e,i)=>{e.kcal=Math.round(e.c*4+e.p*4+e.f*9);e.opts=mealTemplatesFor(e,dayKey,i).map(t=>build(t,{c:e.c,p:e.p,f:e.f},e.bet));});
+ P.intraC=totalIntra;P.rate=active.length?Math.round(totalIntra/Math.max(.01,active.reduce((a,c)=>a+(Number(c.dur)||0),0))):0;
+ P.sessionFuel=sessionFuel;P.sessions=activeEntries.map(entry=>({id:entry.id,sport:entry.cfg.sport||'bike',start:entry.cfg.ride||'09:30',dur:Number(entry.cfg.dur)||0,netKcal:workoutKcal(entry)}));
+ const mealTotals=P.ev.reduce((a,e)=>({c:a.c+(Number(e.c)||0),p:a.p+(Number(e.p)||0),f:a.f+(Number(e.f)||0)}),{c:0,p:0,f:0});
+ P.tgt={kcal:Math.round(4*(mealTotals.c+totalIntra)+4*mealTotals.p+9*mealTotals.f),c:mealTotals.c+totalIntra,p:mealTotals.p,f:mealTotals.f};
+ P.energyMacroGap=macro.energyGap;P.macroCarbKg=macro.carbKg;P.nutrition72h=ctx;P.sessionCount=sessions.length;
  return P;
 }
 function render(){
  const dk=$("day").value;
- const localNow=new Date(),today=new Date(localNow.getTime()-localNow.getTimezoneOffset()*60000).toISOString().slice(0,10);
- const P=PLAN=applyMultiSessionEnergy(gen(dk),dk),lg=dayLogs(),now=localNow.getHours()*60+localNow.getMinutes();
+ const P=PLAN=applyMultiSessionEnergy(gen(dk),dk),lg=dayLogs(),today=new Date().toISOString().slice(0,10),now=new Date().getHours()*60+new Date().getMinutes();
  const isPast=dk<today,isToday=dk==today,pastT=t=>isPast||(isToday&&t<now-30);
  adjustFutureMeals(P,lg,dk,today,now);
  const daySessions=sessionList(dk).filter(s=>s&&s.cfg&&Number(s.cfg.dur)>0);
@@ -675,15 +612,10 @@ function openMeal(id){const e=PLAN.ev.find(x=>x.id==id);if(!e)return;ACTIVE_FOOD
  ${e.opts.length?(()=>{const o=e.opts[0];return `<div class="opt"><div class="ot">Proposition · ${o.title}</div><div class="it">${itemsHtml(o)}</div><div class="tg" style="margin-top:.5rem"><span>C ${o.c}g</span><span>P ${o.p}g</span><span>F ${o.f}g</span><span>${o.kcal} kcal</span></div><button class="btn" onclick="logOpt('${e.id}',0)">✅ Enregistrer ce repas</button><button class="btn" onclick="recalcOneMeal('${e.id}')">🔄 Régénérer ce repas</button></div>`})():`<div class="macro-alert">Aucune recette de la base actuelle ne respecte ces préférences. Modifie les exclusions ou ajoute une recette compatible.</div>`}
  <div class="hd">Ajouter un aliment à ce repas</div><div class="food-search-row"><input id="ff" autocomplete="off" oninput="fsearch()" placeholder="Rechercher un aliment…"><button class="scan-btn" title="Scanner un code-barres" aria-label="Scanner un code-barres" onclick="scanBarcode('${e.id}')">▥</button></div>
  <div id="fstatus" class="food-status">Recherche un aliment, puis touche son résultat pour choisir la quantité.</div><div id="fres"></div><button class="btn" style="background:var(--cd);color:var(--t);border:1px solid var(--bd)" onclick="foodForm('${e.id}')">Créer un aliment personnalisé</button>${logsHtml(e.id)}`)}
-function openRide(){const P=PLAN,I=intraInfo(P),all=P.sessionFuel||[],fuel=all.filter(s=>s.total>0&&s.rate>0);if(all.length>1){
- const rows=all.map(s=>`<div class="card c-w" style="margin:.4rem 0"><div class="ch"><div class="cn">${sportLabel(s.sport)} · ${fm(tm(s.start))} · ${Number(s.dur).toFixed(2)} h</div></div>${s.rate>0?`<div class="rate">${s.rate} g/h</div><div class="tg"><span>${s.total} g pour cette séance</span><span>${s.total*4} kcal</span></div>`:'<div class="ex">Pas de ravitaillement intra prévu pour cette séance.</div>'}</div>`).join("");
- if(!fuel.length){toast("Aucun ravitaillement intra-séance nécessaire aujourd'hui");return;}
- openSheet(`<div class="mh"><div class="mt">Ravitaillement de toutes les séances</div><button class="x" onclick="closeSheet()">✕</button></div>${rows}<div class="meal-total"><b>Total journalier intra-séance</b><div class="tg"><span>${P.intraC} g glucides</span><span>${P.intraC*4} kcal</span></div><div class="ex">Chaque séance est calculée séparément. La musculation n'ajoute pas de glucides intra-séance. Le total est inclus une seule fois dans les glucides quotidiens.</div></div><button class="btn" onclick="logRide()">✅ Enregistrer le ravitaillement total</button>${logsHtml("ride")}`);return;
- }
- if(P.sport==="strength"||P.rate<=0){toast("Pas de fuel intra-séance nécessaire pour cette séance");return;}
+function openRide(){const P=PLAN,I=intraInfo(P);if(P.sport==="strength"||P.rate<=0){toast("Pas de fuel intra-séance nécessaire pour cette séance");return;}
  openSheet(`<div class="mh"><div class="mt">🚴 Fuel intra · ${fm(P.R)}–${fm(P.E)}</div><button class="x" onclick="closeSheet()">✕</button></div>
  <div class="rate" style="font-size:2.2rem">${P.rate} g/h</div><div class="tg" style="margin:.4rem 0"><span>${P.intraC} g au total</span><span>${P.intraC*4} kcal</span></div>
- <div class="sb">🍬 Par heure : 1 bidon 500 ml (≈${I.dg} g)${I.gels?` + ${I.gels} gel(s) de 25 g`:""}.${P.rate>60?"<br>Au-delà de 60 g/h : mélange glucose:fructose (2:1), avec tolérance digestive construite progressivement. Le plan ne suppose pas automatiquement 120 g/h.":""}${P.dur<=1?"<br>Sortie courte : boisson glucidée ou rinçage buccal suffisant.":""}</div>
+ <div class="sb">🍬 Par heure : 1 bidon 500 ml (≈${I.dg} g)${I.gels?` + ${I.gels} gel(s) de 25 g`:""}.${P.rate>60?"<br>Au-delà de 60 g/h : mélange glucose:fructose (2:1).":""}${P.dur<=1?"<br>Sortie courte : boisson glucidée ou rinçage buccal suffisant.":""}</div>
  <div class="sb">💧 Liquides : <b>${I.fl}</b><br>🧂 Sodium : <b>${I.na}</b> ${I.hot?"(chaleur : sueurs élevées)":I.cold?"(froid : pense à boire quand même)":"(conditions tempérées)"}</div>
  ${I.caf?`<div class="sb">${I.caf}</div>`:""}
  <button class="btn" onclick="logRide()">✅ Enregistrer le fuel intra</button>${logsHtml("ride")}`)}
@@ -691,7 +623,7 @@ function push(m,n,c,p,f,kind){const logs=dayLogs();logs.push({id:Date.now()+""+M
  if(kind==='food'){const e=PLAN&&PLAN.ev.find(x=>x.id==m);if(e){const a=mealLogTotals(m,logs),cal=kcalOf(a),ratio=(v,t)=>t>0?v/t:0;const macroHits=[ratio(a.c,e.c),ratio(a.p,e.p),ratio(a.f,e.f)].filter(v=>v>=.65).length;if(cal>=e.kcal*.75&&macroHits>=2&&!logs.some(x=>x.m===m&&x.kind==='auto'))logs.push({id:'auto_'+Date.now(),m,n:'Repas marqué comme consommé automatiquement',c:0,p:0,f:0,kind:'auto'});}}
  save();render();toast(kind==="food"?"Aliment ajouté au repas ✓":"Repas enregistré ✓") }
 function logOpt(id,i){const e=PLAN.ev.find(x=>x.id==id),o=e.opts[i];push(id,`${e.label} – ${o.title}`,o.c,o.p,o.f);openMeal(id)}
-function logRide(){const multi=(PLAN.sessionFuel||[]).length>1,label=multi?`Fuel intra · ${PLAN.intraC} g au total`:`Fuel intra ${PLAN.rate} g/h`;push("ride",label,PLAN.intraC,0,0);openRide()}
+function logRide(){push("ride","Fuel intra "+PLAN.rate+" g/h",PLAN.intraC,0,0);openRide()}
 function logFree(id){const f=SELF||findFood($("ff").value),g=+$("fg").value;if(!f||!g||g<=0){toast("Choisis un aliment et une quantité valide");return}if(f.c==null||f.p==null||f.f==null){toast("Valeurs nutritionnelles incomplètes : aliment non ajouté");return}const k=f.u=='p'?g:g/100;const src=f.source&&f.source!=='PERFMASTER'&&f.source!=='local'?' · '+f.source:'';
  if(f.on&&!FOODS.some(x=>x.n==f.n)){FOODS.push(Object.assign({},f,{on:0}));try{localStorage.setItem('gb27foods',JSON.stringify(FOODS))}catch(e){}}SELF=null;push(id,`${f.n}${src} · ${g}${f.u=='p'?' portion(s)':' g'}`,f.c*k,f.p*k,f.f*k,'food');openMeal(id)}
 function delLog(id){const k=$("day").value;LOGS[k]=dayLogs().filter(x=>x.id!=id);save();render();const m=document.querySelector(".mt");if(PLAN&&$("ov").classList.contains("on")){const t=m.textContent;t.includes("Fuel")?openRide():openMeal(PLAN.ev.find(e=>t.startsWith(e.label))?.id)}}
@@ -704,12 +636,12 @@ function home(P,nx,isToday,I){
  if(!m)nh=`<div class="card c-p"><div class="big">🎉 Journée terminée</div><div class="ex">Tous les repas sont passés ou enregistrés.</div></div>`;
  else{const df=m.t-now,cd=isToday?(df>0?`⏱ dans ${df>=60?Math.floor(df/60)+" h ":""}${df%60} min`:"⏱ maintenant"):"";
   nh=`<div class="card ${COL[m.type]}" onclick="goMeal('${m.id}')"><div class="ch"><div class="big">${m.label}</div><div class="ck">${fm(m.t)}</div></div><div class="tg"><span style="color:#67e8f9">C ${m.c}g</span><span style="color:#6ee7b7">P ${m.p}g</span><span style="color:#fcd34d">F ${m.f}g</span><span>${m.kcal} kcal</span></div><div class="ex">Proposition : ${m.opts[0]?.title||"Aucune recette compatible avec les préférences"}</div>${cd?`<div class="cd">${cd}</div>`:""}<div class="ex">Touche pour voir les options et enregistrer.</div></div>`}
- $("v-home").innerHTML=`<div class="hm"><div class="dtl" style="display:flex;justify-content:space-between;align-items:center"><span>${d}</span><button class="x" onclick="openProf()" aria-label="Profil">⚙️</button></div><div class="sec">Entraînement du jour</div><div class="card c-w" onclick="goRide()"><div class="ch"><div class="cn">${P.sport==="bike"?"🚴":P.sport==="run"?"🏃":P.sport==="swim"?"🏊":P.sport==="ski"?"🎿":"💪"} ${sportName} · ${fm(P.R)} – ${fm(P.E)} · ${P.dur.toFixed(2)} h${P.sport==="bike"&&P.watts?" · "+P.watts+" W":""}</div></div>${P.sessionFuel&&P.sessionFuel.length>1?`<div class="rate">${P.sessionFuel.filter(s=>s.total>0).length} séance(s) ravitaillée(s) · ${P.intraC} g au total</div>`:P.rate>0?`<div class="rate">${P.rate} g/h</div>`:""}<div class="tg"><span>${sp.length?sp.join(" + "):"Endurance Z2"}</span><span>${MODE}</span><span>TSS ≈ ${P.TSS}</span><span>${P.intraC} g glucides au total</span></div></div><div class="sec">${isToday?"Prochain repas":"Premier repas du jour"}</div>${nh}<div class="sec">Objectif du jour</div><div class="tg"><span>${P.tgt.kcal} kcal</span><span style="color:#67e8f9">C ${P.tgt.c}g (${(P.tgt.c/P.kg).toFixed(1)} g/kg)</span><span style="color:#6ee7b7">P ${P.tgt.p}g</span><span style="color:#fcd34d">F ${P.tgt.f}g</span></div><div class="ex">Glucides totaux : repas + ravitaillement pendant les séances (inclus une seule fois).</div>${P.macroNote?`<div class="macro-alert">⚠️ ${P.macroNote}</div>`:''}</div>`}
+ $("v-home").innerHTML=`<div class="hm"><div class="dtl" style="display:flex;justify-content:space-between;align-items:center"><span>${d}</span><button class="x" onclick="openProf()" aria-label="Profil">⚙️</button></div><div class="sec">Entraînement du jour</div><div class="card c-w" onclick="goRide()"><div class="ch"><div class="cn">${P.sport==="bike"?"🚴":P.sport==="run"?"🏃":P.sport==="swim"?"🏊":P.sport==="ski"?"🎿":"💪"} ${sportName} · ${fm(P.R)} – ${fm(P.E)} · ${P.dur.toFixed(2)} h${P.sport==="bike"&&P.watts?" · "+P.watts+" W":""}</div></div>${P.rate>0?`<div class="rate">${P.rate} g/h</div>`:""}<div class="tg"><span>${sp.length?sp.join(" + "):"Endurance Z2"}</span><span>${MODE}</span><span>TSS ≈ ${P.TSS}</span><span>${P.intraC} g glucides</span></div></div><div class="sec">${isToday?"Prochain repas":"Premier repas du jour"}</div>${nh}<div class="sec">Objectif du jour</div><div class="tg"><span>${P.tgt.kcal} kcal</span><span style="color:#67e8f9">C ${P.tgt.c}g (${(P.tgt.c/P.kg).toFixed(1)} g/kg)</span><span style="color:#6ee7b7">P ${P.tgt.p}g</span><span style="color:#fcd34d">F ${P.tgt.f}g</span></div></div>`}
 function tab(n){if(n!='train')PREV=n;$('dates').style.display=n=='course'?'none':'';["home","board","train","recup","cal","course"].forEach(k=>$("v-"+k).classList.toggle("on",k==n));document.querySelectorAll(".nb").forEach(b=>b.classList.toggle("on",b.dataset.t==n));scrollTo({top:0,behavior:"smooth"})}
 document.querySelectorAll(".nb").forEach(b=>b.onclick=()=>tab(b.dataset.t));
 const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
 const getCfg=()=>{const c={MODE};['wake','ride','dur','watts','pace','skiPace','swimPace','enduranceIntensity','s1','s2','sport','strengthIntensity'].forEach(i=>{if($(i))c[i]=$(i).value});['caf','bet','hot','cold'].forEach(i=>c[i]=$(i).checked);const saved=PLANS[$('day').value];if(saved&&saved.eeOverride>0)c.eeOverride=saved.eeOverride;return c};
-const DEF={MODE:'normal',wake:'07:30',ride:'09:30',dur:'0',sport:'bike',strengthIntensity:'moderate',enduranceIntensity:'moderate',skiPace:'6:00',swimPace:'2:00',watts:'205',pace:'5:30',s1:'none',s2:'none',caf:false,bet:false,hot:false,cold:false};
+const DEF={MODE:'normal',wake:'07:30',ride:'09:30',dur:'0',sport:'bike',strengthIntensity:'moderate',enduranceIntensity:'moderate',skiPace:'6:00',swimPace:'2:00',watts:'0',pace:'5:30',s1:'none',s2:'none',caf:false,bet:false,hot:false,cold:false};
 function applyCfg(c){MODE=c.MODE||'normal';['wake','ride','dur','watts','pace','skiPace','swimPace','enduranceIntensity','s1','s2','sport','strengthIntensity'].forEach(i=>{if(i==='wake')$('wake').value=CFG.wake||c.wake||'07:30';else if(c[i]!=null&&$(i))$(i).value=c[i]});['caf','bet','hot','cold'].forEach(i=>{$(i).checked=!!c[i];$(i).closest('.cc').classList.toggle('on',!!c[i])});document.querySelectorAll('.mb').forEach(b=>b.classList.toggle('on',b.dataset.m==MODE))}
 const loadDay=()=>applyCfg(PLANS[$('day').value]||DEF);
 function planFor(d){const cur=getCfg();applyCfg(PLANS[d]||DEF);const P=gen(d);applyCfg(cur);return P}
@@ -720,9 +652,9 @@ const sg=v=>(v>=0?'+':'')+Math.round(v);
 function selDay(k){$('day').value=k;document.querySelectorAll('.dbtn').forEach(x=>x.classList.remove('on'));loadDay();render()}
 function setRest(){applyCfg(Object.assign({},PLANS[$('day').value]||DEF,{dur:'0',caf:false}));save();render()}
 function bmrCalc(kg){const p=PROF;if(+p.bmrm>0)return+p.bmrm;if(+p.bf>0)return Math.round(500+22*kg*(1-p.bf/100));return Math.round(10*kg+6.25*p.h-5*p.age+(p.sex=='f'?-161:5))}
-function profInfo(){const kg=+$('pk').value||72,sv=Object.assign({},PROF),b=bmrCalc(kg);$('pinfo').innerHTML=`Métabolisme de base : <b>${b} kcal/j</b> (${PROF.bmrm>0?'mesuré':PROF.bf>0?'Cunningham, masse maigre':'Mifflin-St Jeor'})<br>Activité quotidienne hors entraînement (×${PROF.pal}) : <b>${Math.round(b*PROF.pal)} kcal</b><br><small>Les dépenses des séances s’ajoutent séparément : watts pour le vélo si disponibles; course, natation, ski et musculation sont estimés selon les données renseignées. La part de repos déjà comprise dans le métabolisme de base (≈ ${Math.round(b/24)} kcal/h) est retirée pendant la durée de l’effort. Ces estimations restent à valider avec les tendances réelles.</small>`}
+function profInfo(){const kg=+$('pk').value||72,sv=Object.assign({},PROF),b=bmrCalc(kg);$('pinfo').innerHTML=`Métabolisme de base : <b>${b} kcal/j</b> (${PROF.bmrm>0?'mesuré':PROF.bf>0?'Cunningham, masse maigre':'Mifflin-St Jeor'})<br>Activité quotidienne hors entraînement (×${PROF.pal}) : <b>${Math.round(b*PROF.pal)} kcal</b><br><small>La dépense vélo (watts × durée, si la puissance est renseignée) s’ajoute, mais on retire la part de repos déjà comprise dans le métabolisme de base (≈ ${Math.round(b/24)} kcal/h) : ex. 1700 + 1000 de vélo ≈ ${Math.round(1700*PROF.pal+1000-1700*2/24)} avec 2 h de sortie, pas 2700.</small>`}
 
-const UI_TRANSLATIONS={'Calendrier':'Calendar','Accueil':'Home','Tableau de bord':'Dashboard','Aujourd’hui':'Today','Aujourd hui':'Today','Hier':'Yesterday','Demain':'Tomorrow','Plan du jour':'Daily plan','Entraînement sauvegardé ✓':'Workout saved ✓','Séance planifiée':'Scheduled workout','Toutes les séances du jour':'All workouts today','Prochaine course':'Next race','Aucune course à venir':'No upcoming races','Choisis un sport pour ajouter une séance.':'Choose a sport to add a workout.','Séance supprimée ✓':'Workout deleted ✓','Réveil habituel':'Usual wake-up time','Planification de la séance':'Workout planning','Début musculation':'Strength training start','Début course à pied':'Run start','Heure de départ course':'Run start time','Heure de début':'Start time','Puissance cible (W)':'Target power (W)','Allure course (min/km)':'Running pace (min/km)','Objectif ajusté du repas':'Adjusted meal target','Les repas suivants seront ajustés si possible.':'Later meals will be adjusted when possible.','Objectif ajusté':'Adjusted target','Ingrédients':'Ingredients','Quantité':'Quantity','Scanner un code-barres':'Scan a barcode','Créer un aliment personnalisé':'Create a custom food','Aliment ajouté au repas ✓':'Food added to meal ✓','Aliment ajouté ✓':'Food added ✓','Entraînement ajouté':'Workout added','Impossible de régénérer ce repas. Vérifie les préférences.':'Could not regenerate this meal. Check your preferences.','Préférences enregistrées ✓':'Preferences saved ✓','Repas enregistré ✓':'Meal logged ✓','Repas régénérés':'Meals regenerated','Profil enregistré ✓':'Profile saved ✓','Données & séances':'Data & workouts','Importer une séance (.tcx / .gpx)':'Import a workout (.tcx / .gpx)','Importer mes données':'Import my data','Exporter mes données':'Export my data','Synchronisation actuelle via Intervals.icu':'Current sync via Intervals.icu','Méthode scientifique & limites':'Scientific method & limitations','Aucune recette compatible':'No compatible recipe','Récupération':'Recovery','Course':'Race','Normal mode':'Normal mode','Heure de réveil habituelle (à régler une seule fois)':'Usual wake-up time (set once)','Préférences enregistrées — complète maintenant ton profil et tes paramètres':'Preferences saved — now complete your profile and settings','Les options intégrées seront filtrées selon ces choix.':'Built-in options will be filtered according to these choices.','Vérifie toujours les étiquettes en cas d’allergie : les recettes et bases externes ne garantissent pas l’absence de traces.':'Always check labels for allergies: recipes and external databases cannot guarantee absence of traces.','Aucune recette de la base actuelle ne respecte ces préférences. Modifie les exclusions ou ajoute une recette compatible.':'No recipe in the current database matches these preferences. Change exclusions or add a compatible recipe.','Accueil':'Home','Tableau de bord':'Dashboard','Calendrier':'Calendar','Récup':'Recovery','Course à pied':'Running','Course':'Race','Vélo':'Cycling','Musculation':'Strength training','Natation':'Swimming','Ski de fond':'Cross-country skiing','Heure de départ de':'Start time for','Entraînements':'Workouts','Entraînement du jour':'Today’s workout','Jour de repos':'Rest day','Objectif du jour':'Daily target','Glucides totaux = glucides des repas + ravitaillement pendant les séances, compté une seule fois.':'Total carbohydrates = meal carbohydrates + workout fueling, counted only once.','Glucides totaux : repas + ravitaillement pendant les séances (inclus une seule fois).':'Total carbohydrates: meals + workout fueling (included once).','Objectifs nutritifs du jour':'Daily nutrition targets','Prochain repas':'Next meal','Premier repas du jour':'First meal of the day','Journée terminée':'Day complete','Tous les repas sont passés ou enregistrés.':'All meals have passed or been logged.','Enregistrés':'Logged','Glucides':'Carbs','Protéines':'Protein','Lipides':'Fat','Calories':'Calories','Souper':'Dinner','Repas du midi':'Lunch','Petit-déjeuner':'Breakfast','Petit-déjeuner (pré-sortie)':'Pre-workout breakfast','Petit-déjeuner léger (pré-sortie)':'Light pre-workout breakfast','Collation PM':'Afternoon snack','Collation du matin':'Morning snack','Collation pré-sortie':'Pre-workout snack','Collation de récupération':'Recovery snack','Collation du soir':'Evening snack','Déjeuner de récupération':'Recovery breakfast','Pré-sortie léger':'Light pre-workout snack','Régénérer tous les repas':'Regenerate all meals','Régénérer ce repas':'Regenerate this meal','Tous les repas ont été régénérés ✓':'All meals regenerated ✓','Nouvelle proposition générée ✓':'New meal suggestion generated ✓','Proposition':'Suggestion','Enregistrer ce repas':'Log this meal','Enregistrer l’option':'Log option','Préférences alimentaires':'Food preferences','Aliments à éviter':'Foods to avoid','Type d’alimentation':'Diet type','Aucune restriction':'No restrictions','Végétarien':'Vegetarian','Végétalien':'Vegan','Pescétarien':'Pescatarian','Sans gluten':'Gluten-free','Sans lactose':'Lactose-free','Halal':'Halal','Cétogène':'Keto','Arachides':'Peanuts','Noix et amandes':'Tree nuts and almonds','Produits laitiers':'Dairy','Gluten / blé':'Gluten / wheat','Œufs':'Eggs','Poisson':'Fish','Fruits de mer':'Shellfish','Soja':'Soy','Porc':'Pork','Bœuf':'Beef','Poulet':'Chicken','Dinde':'Turkey','Banane':'Banana','Avoine':'Oats','Riz':'Rice','Pâtes':'Pasta','Miel':'Honey','Légumineuses':'Legumes','Aliments à privilégier (facultatif, séparés par des virgules)':'Foods to prioritize (optional, comma-separated)','Enregistrer les préférences':'Save preferences','Préférences enregistrées ✓':'Preferences saved ✓','Profil':'Profile','Nom':'Name','Sexe':'Sex','Homme':'Male','Femme':'Female','Âge':'Age','Taille (cm)':'Height (cm)','Poids (kg)':'Weight (kg)','FTP (W)':'FTP (W)','% gras (optionnel)':'Body fat % (optional)','BMR mesuré (optionnel)':'Measured BMR (optional)','Activité quotidienne hors entraînement':'Daily activity outside training','Sédentaire (bureau)':'Sedentary (desk job)','Modérée':'Moderate','Très active':'Very active','Enregistrer':'Save','Annuler':'Cancel','Fermer':'Close','Paramètres':'Settings','Langue / Language':'Language','Synchroniser maintenant':'Sync now','Exporter mes données':'Export my data','Importer mes données':'Import my data','Se déconnecter':'Log out','Ajouter un entraînement':'Add a workout','AJOUTER UN ENTRAÎNEMENT':'ADD A WORKOUT','Choisis un sport pour ajouter une séance. Tu peux en planifier autant que tu veux dans la même journée. Les anciens plans enregistrés sont conservés ci-dessous.':'Choose a sport to add a workout. You can schedule as many as you want on the same day. Previously saved plans are kept below.','Modifier':'Edit','Supprimer':'Delete','Supprimer l’entraînement':'Delete workout','Heure de réveil habituelle (à régler une seule fois)':'Usual wake-up time (set once)','Ouvrir le plan journalier / nutrition':'Open daily plan / nutrition','Planification de la séance':'Workout planning','Planification':'Planning','Jour':'Day','Départ vélo':'Cycling start','Heure de départ vélo':'Cycling start time','Heure de départ course':'Run start time','Heure de début':'Start time','Durée (heures, précision 0,05 h ≈ 3 min)':'Duration (hours, 0.05 h ≈ 3 min)','Puissance cible (W)':'Target power (W)','Allure course (min/km)':'Running pace (min/km)','Spécificité 1 (vélo/course)':'Workout focus 1 (cycling/running)','Spécificité 2 (optionnelle)':'Workout focus 2 (optional)','Aucune (endurance)':'None (endurance)','Aucune':'None','VO2 max / intervalles':'VO2 max / intervals','Tempo / seuil':'Tempo / threshold','Sprints / explosivité':'Sprints / power','NORMAL':'NORMAL','AFFÛTAGE':'CUTTING','PERFORMANCE':'PERFORMANCE','MASSE':'MUSCLE GAIN','Caféine':'Caffeine','Betteraves':'Beetroot','Température chaude':'Hot conditions','Température froide':'Cold conditions','Mode normal : le carburant suit le travail à fournir (≈1,8 g/kg de protéines, glucides selon la charge).':'Normal mode: fuel matches workload (≈1.8 g/kg protein, carbs based on training load).','Préférences alimentaires et repas':'Food preferences and meals','Connexions aux plateformes':'Platform connections','État actuel : cette version peut lire des données via Intervals.icu avec ta clé API. Ce n’est pas encore une connexion OAuth officielle directe à Garmin, Wahoo ou WHOOP. N’entre jamais un mot de passe Garmin/WHOOP ici.':'Current status: this version can read data through Intervals.icu using your API key. It does not yet provide direct official OAuth connections to Garmin, Wahoo or WHOOP. Never enter a Garmin/WHOOP password here.','Méthode scientifique & limites':'Scientific method & limitations','Données & séances':'Data & workouts','Ajouter un aliment à ce repas':'Add food to this meal','Rechercher un aliment…':'Search for a food…','Créer un aliment personnalisé':'Create a custom food','Nom requis':'Name required','Repas enregistré':'Meal logged','Total déjà ajouté à ce repas':'Total already added to this meal','Objectif ajusté du repas':'Adjusted meal target','Pas de glucides intra-séance calculés pour la musculation.':'No intra-workout carbs calculated for strength training.','Pas de glucides intra recommandés pour cette durée.':'No intra-workout carbs recommended for this duration.','Repos':'Rest','Facile':'Easy','Dur':'Hard','Très frais':'Very fresh','Frais':'Fresh','Neutre':'Neutral','Charge productive':'Productive load','Surcharge':'Overload','Profil enregistré ✓':'Profile saved ✓','Entraînement sauvegardé ✓':'Workout saved ✓','Entraînement supprimé ✓':'Workout deleted ✓','Aucune recette de la base actuelle ne respecte ces préférences. Modifie les exclusions ou ajoute une recette compatible.':'No recipe in the current database matches these preferences. Change exclusions or add a compatible recipe.','Proposition :':'Suggestion:','Ex. :':'E.g.:','Enregistrer cette option':'Log this option','Préférences enregistrées — complète maintenant ton profil et tes paramètres':'Preferences saved — now complete your profile and settings','Ajouter':'Add','Importer':'Import','Date':'Date','Objectif':'Goal','Détails / étape':'Details / stage','Aucune course pour l’instant : utilise + Ajouter ou Importer.':'No races yet: use + Add or Import.','Synchronisation actuelle via Intervals.icu':'Current sync via Intervals.icu','Clé API Intervals.icu':'Intervals.icu API key','ID athlète (0 = moi)':'Athlete ID (0 = me)','Enregistrer les données':'Save data','Le recalcul a échoué. Réessaie après avoir vérifié les paramètres.':'Recalculation failed. Check your settings and try again.','Régénération du repas':'Meal regeneration','Les calories affichées sont des estimations, pas une mesure directe.':'Displayed calories are estimates, not direct measurements.','Rester connecté':'Stay signed in','Nom d’utilisateur':'Username','Mot de passe (4 caractères min.)':'Password (at least 4 characters)','Créer le compte':'Create account','Se connecter':'Sign in','J’ai déjà un compte':'I already have an account','Créer un compte':'Create an account','Ce nom existe déjà.':'This username already exists.','Mot de passe incorrect.':'Incorrect password.','Stockage indisponible : ouvre l’app depuis le lien publié.':'Storage unavailable: open the app from its published link.'
+const UI_TRANSLATIONS={'Calendrier':'Calendar','Accueil':'Home','Tableau de bord':'Dashboard','Aujourd’hui':'Today','Aujourd hui':'Today','Hier':'Yesterday','Demain':'Tomorrow','Plan du jour':'Daily plan','Entraînement sauvegardé ✓':'Workout saved ✓','Séance planifiée':'Scheduled workout','Toutes les séances du jour':'All workouts today','Prochaine course':'Next race','Aucune course à venir':'No upcoming races','Choisis un sport pour ajouter une séance.':'Choose a sport to add a workout.','Séance supprimée ✓':'Workout deleted ✓','Réveil habituel':'Usual wake-up time','Planification de la séance':'Workout planning','Début musculation':'Strength training start','Début course à pied':'Run start','Heure de départ course':'Run start time','Heure de début':'Start time','Puissance cible (W, estimation d’intensité)':'Target power (W, intensity estimate)','Allure course (min/km)':'Running pace (min/km)','Objectif ajusté du repas':'Adjusted meal target','Les repas suivants seront ajustés si possible.':'Later meals will be adjusted when possible.','Objectif ajusté':'Adjusted target','Ingrédients':'Ingredients','Quantité':'Quantity','Scanner un code-barres':'Scan a barcode','Créer un aliment personnalisé':'Create a custom food','Aliment ajouté au repas ✓':'Food added to meal ✓','Aliment ajouté ✓':'Food added ✓','Entraînement ajouté':'Workout added','Impossible de régénérer ce repas. Vérifie les préférences.':'Could not regenerate this meal. Check your preferences.','Préférences enregistrées ✓':'Preferences saved ✓','Repas enregistré ✓':'Meal logged ✓','Repas régénérés':'Meals regenerated','Profil enregistré ✓':'Profile saved ✓','Données & séances':'Data & workouts','Importer une séance (.tcx / .gpx)':'Import a workout (.tcx / .gpx)','Importer mes données':'Import my data','Exporter mes données':'Export my data','Synchronisation actuelle via Intervals.icu':'Current sync via Intervals.icu','Méthode scientifique & limites':'Scientific method & limitations','Aucune recette compatible':'No compatible recipe','Récupération':'Recovery','Course':'Race','Normal mode':'Normal mode','Heure de réveil habituelle (à régler une seule fois)':'Usual wake-up time (set once)','Préférences enregistrées — complète maintenant ton profil et tes paramètres':'Preferences saved — now complete your profile and settings','Les options intégrées seront filtrées selon ces choix.':'Built-in options will be filtered according to these choices.','Vérifie toujours les étiquettes en cas d’allergie : les recettes et bases externes ne garantissent pas l’absence de traces.':'Always check labels for allergies: recipes and external databases cannot guarantee absence of traces.','Aucune recette de la base actuelle ne respecte ces préférences. Modifie les exclusions ou ajoute une recette compatible.':'No recipe in the current database matches these preferences. Change exclusions or add a compatible recipe.','Accueil':'Home','Tableau de bord':'Dashboard','Calendrier':'Calendar','Récup':'Recovery','Course à pied':'Running','Course':'Race','Vélo':'Cycling','Musculation':'Strength training','Natation':'Swimming','Ski de fond':'Cross-country skiing','Heure de départ de':'Start time for','Entraînements':'Workouts','Entraînement du jour':'Today’s workout','Jour de repos':'Rest day','Objectif du jour':'Daily target','Objectifs nutritifs du jour':'Daily nutrition targets','Prochain repas':'Next meal','Premier repas du jour':'First meal of the day','Journée terminée':'Day complete','Tous les repas sont passés ou enregistrés.':'All meals have passed or been logged.','Enregistrés':'Logged','Glucides':'Carbs','Protéines':'Protein','Lipides':'Fat','Calories':'Calories','Souper':'Dinner','Repas du midi':'Lunch','Petit-déjeuner':'Breakfast','Petit-déjeuner (pré-sortie)':'Pre-workout breakfast','Petit-déjeuner léger (pré-sortie)':'Light pre-workout breakfast','Collation PM':'Afternoon snack','Collation du matin':'Morning snack','Collation pré-sortie':'Pre-workout snack','Collation de récupération':'Recovery snack','Collation du soir':'Evening snack','Déjeuner de récupération':'Recovery breakfast','Pré-sortie léger':'Light pre-workout snack','Régénérer tous les repas':'Regenerate all meals','Régénérer ce repas':'Regenerate this meal','Tous les repas ont été régénérés ✓':'All meals regenerated ✓','Nouvelle proposition générée ✓':'New meal suggestion generated ✓','Proposition':'Suggestion','Enregistrer ce repas':'Log this meal','Enregistrer l’option':'Log option','Préférences alimentaires':'Food preferences','Aliments à éviter':'Foods to avoid','Type d’alimentation':'Diet type','Aucune restriction':'No restrictions','Végétarien':'Vegetarian','Végétalien':'Vegan','Pescétarien':'Pescatarian','Sans gluten':'Gluten-free','Sans lactose':'Lactose-free','Halal':'Halal','Cétogène':'Keto','Arachides':'Peanuts','Noix et amandes':'Tree nuts and almonds','Produits laitiers':'Dairy','Gluten / blé':'Gluten / wheat','Œufs':'Eggs','Poisson':'Fish','Fruits de mer':'Shellfish','Soja':'Soy','Porc':'Pork','Bœuf':'Beef','Poulet':'Chicken','Dinde':'Turkey','Banane':'Banana','Avoine':'Oats','Riz':'Rice','Pâtes':'Pasta','Miel':'Honey','Légumineuses':'Legumes','Aliments à privilégier (facultatif, séparés par des virgules)':'Foods to prioritize (optional, comma-separated)','Enregistrer les préférences':'Save preferences','Préférences enregistrées ✓':'Preferences saved ✓','Profil':'Profile','Nom':'Name','Sexe':'Sex','Homme':'Male','Femme':'Female','Âge':'Age','Taille (cm)':'Height (cm)','Poids (kg)':'Weight (kg)','FTP (W)':'FTP (W)','% gras (optionnel)':'Body fat % (optional)','BMR mesuré (optionnel)':'Measured BMR (optional)','Activité hors vélo':'Activity outside cycling','Sédentaire (bureau)':'Sedentary (desk job)','Modérée':'Moderate','Très active':'Very active','Enregistrer':'Save','Annuler':'Cancel','Fermer':'Close','Paramètres':'Settings','Langue / Language':'Language','Synchroniser maintenant':'Sync now','Exporter mes données':'Export my data','Importer mes données':'Import my data','Se déconnecter':'Log out','Ajouter un entraînement':'Add a workout','AJOUTER UN ENTRAÎNEMENT':'ADD A WORKOUT','Choisis un sport pour ajouter une séance. Tu peux en planifier autant que tu veux dans la même journée. Les anciens plans enregistrés sont conservés ci-dessous.':'Choose a sport to add a workout. You can schedule as many as you want on the same day. Previously saved plans are kept below.','Modifier':'Edit','Supprimer':'Delete','Supprimer l’entraînement':'Delete workout','Heure de réveil habituelle (à régler une seule fois)':'Usual wake-up time (set once)','Ouvrir le plan journalier / nutrition':'Open daily plan / nutrition','Planification de la séance':'Workout planning','Planification':'Planning','Jour':'Day','Départ vélo':'Cycling start','Heure de départ vélo':'Cycling start time','Heure de départ course':'Run start time','Heure de début':'Start time','Durée (heures, précision 0,05 h ≈ 3 min)':'Duration (hours, 0.05 h ≈ 3 min)','Puissance cible (W, estimation d’intensité)':'Target power (W, intensity estimate)','Allure course (min/km)':'Running pace (min/km)','Spécificité 1 (vélo/course)':'Workout focus 1 (cycling/running)','Spécificité 2 (optionnelle)':'Workout focus 2 (optional)','Aucune (endurance)':'None (endurance)','Aucune':'None','VO2 max / intervalles':'VO2 max / intervals','Tempo / seuil':'Tempo / threshold','Sprints / explosivité':'Sprints / power','NORMAL':'NORMAL','AFFÛTAGE':'CUTTING','PERFORMANCE':'PERFORMANCE','MASSE':'MUSCLE GAIN','Caféine':'Caffeine','Betteraves':'Beetroot','Température chaude':'Hot conditions','Température froide':'Cold conditions','Mode normal : le carburant suit le travail à fournir (≈1,8 g/kg de protéines, glucides selon la charge).':'Normal mode: fuel matches workload (≈1.8 g/kg protein, carbs based on training load).','Préférences alimentaires et repas':'Food preferences and meals','Connexions aux plateformes':'Platform connections','État actuel : cette version peut lire des données via Intervals.icu avec ta clé API. Ce n’est pas encore une connexion OAuth officielle directe à Garmin, Wahoo ou WHOOP. N’entre jamais un mot de passe Garmin/WHOOP ici.':'Current status: this version can read data through Intervals.icu using your API key. It does not yet provide direct official OAuth connections to Garmin, Wahoo or WHOOP. Never enter a Garmin/WHOOP password here.','Méthode scientifique & limites':'Scientific method & limitations','Données & séances':'Data & workouts','Ajouter un aliment à ce repas':'Add food to this meal','Rechercher un aliment…':'Search for a food…','Créer un aliment personnalisé':'Create a custom food','Nom requis':'Name required','Repas enregistré':'Meal logged','Total déjà ajouté à ce repas':'Total already added to this meal','Objectif ajusté du repas':'Adjusted meal target','Pas de glucides intra-séance calculés pour la musculation.':'No intra-workout carbs calculated for strength training.','Pas de glucides intra recommandés pour cette durée.':'No intra-workout carbs recommended for this duration.','Repos':'Rest','Facile':'Easy','Dur':'Hard','Très frais':'Very fresh','Frais':'Fresh','Neutre':'Neutral','Charge productive':'Productive load','Surcharge':'Overload','Profil enregistré ✓':'Profile saved ✓','Entraînement sauvegardé ✓':'Workout saved ✓','Entraînement supprimé ✓':'Workout deleted ✓','Aucune recette de la base actuelle ne respecte ces préférences. Modifie les exclusions ou ajoute une recette compatible.':'No recipe in the current database matches these preferences. Change exclusions or add a compatible recipe.','Proposition :':'Suggestion:','Ex. :':'E.g.:','Enregistrer cette option':'Log this option','Préférences enregistrées — complète maintenant ton profil et tes paramètres':'Preferences saved — now complete your profile and settings','Ajouter':'Add','Importer':'Import','Date':'Date','Objectif':'Goal','Détails / étape':'Details / stage','Aucune course pour l’instant : utilise + Ajouter ou Importer.':'No races yet: use + Add or Import.','Synchronisation actuelle via Intervals.icu':'Current sync via Intervals.icu','Clé API Intervals.icu':'Intervals.icu API key','ID athlète (0 = moi)':'Athlete ID (0 = me)','Enregistrer les données':'Save data','Le recalcul a échoué. Réessaie après avoir vérifié les paramètres.':'Recalculation failed. Check your settings and try again.','Régénération du repas':'Meal regeneration','Les calories affichées sont des estimations, pas une mesure directe.':'Displayed calories are estimates, not direct measurements.','Rester connecté':'Stay signed in','Nom d’utilisateur':'Username','Mot de passe (4 caractères min.)':'Password (at least 4 characters)','Créer le compte':'Create account','Se connecter':'Sign in','J’ai déjà un compte':'I already have an account','Créer un compte':'Create an account','Ce nom existe déjà.':'This username already exists.','Mot de passe incorrect.':'Incorrect password.','Stockage indisponible : ouvre l’app depuis le lien publié.':'Storage unavailable: open the app from its published link.'
 ,"Enregistré":"Logged","Calories consommées / prévues":"Calories consumed / planned","Supprimer ce repas de la journée":"Remove this meal from the day","Repas supprimé et objectifs redistribués ✓":"Meal removed and targets redistributed ✓","Intensité musculation":"Strength training intensity","Légère · technique / repos longs":"Light · technique / long rests","Modérée · séries classiques":"Moderate · standard sets","Élevée · séries exigeantes / repos courts":"High · demanding sets / short rests","Heure de départ vélo":"Cycling start time","Heure de départ course":"Run start time","Heure de début":"Start time","Poids (kg)":"Body weight (kg)","Durée (heures, précision 0,05 h ≈ 3 min)":"Duration (hours, 0.05 h ≈ 3 min)","Course à pied":"Running","Musculation":"Strength training","Départ vélo":"Cycling start time","Glucides":"Carbs","Protéines":"Protein","Lipides":"Fat","Petit-déjeuner":"Breakfast","Déjeuner":"Lunch","Souper":"Dinner","Collation du matin":"Morning snack","Collation du soir":"Evening snack","Collation de récupération":"Recovery snack","Préférences alimentaires et repas":"Food and meal preferences"};
 const UI_ORIGINAL_TEXT=new WeakMap(),UI_ORIGINAL_ATTR=new WeakMap();
 function setUiLanguage(lang){lang=lang==='en'?'en':'fr';try{localStorage.setItem('gb27lang',lang)}catch(e){}document.documentElement.lang=lang;applyUiTranslations()}
@@ -734,15 +666,15 @@ try{if(!localStorage.getItem('gb27lang'))localStorage.setItem('gb27lang','fr')}c
 let uiTranslationBusy=false;const uiLangObserver=new MutationObserver(()=>{if(uiTranslationBusy)return;uiTranslationBusy=true;try{applyUiTranslations()}finally{uiTranslationBusy=false}});
 function startUiTranslation(){applyUiTranslations();uiLangObserver.observe(document.body,{childList:true,subtree:true,characterData:true})}
 if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',startUiTranslation);else startUiTranslation();
-function openProf(){const p=PROF;openSheet(`<div class='mh'><div class='mt'>⚙️ Profil</div><button class='x' onclick='closeSheet()'>✕</button></div><div class='f full'><label>Langue / Language</label><select id='uiLang' onchange='setUiLanguage(this.value)'><option value='fr'>Français</option><option value='en'>English</option></select></div><div class='fg'><div class='f'><label>Nom</label><input id='pn' value='${p.name||''}'></div><div class='f'><label>Sexe</label><select id='ps'><option value='m' ${p.sex=='m'?'selected':''}>Homme</option><option value='f' ${p.sex=='f'?'selected':''}>Femme</option></select></div><div class='f'><label>Âge</label><input type='number' id='pa' value='${p.age}'></div><div class='f'><label>Taille (cm)</label><input type='number' id='ph' value='${p.h}'></div><div class='f'><label>Poids (kg)</label><input type='number' id='pk' value='${$('kg').value}'></div><div class='f'><label>FTP (W)</label><input type='number' id='pf' value='${$('ftp').value}'></div><div class='f'><label>% gras (optionnel)</label><input type='number' id='pb' value='${p.bf||''}'></div><div class='f'><label>BMR mesuré (optionnel)</label><input type='number' id='pm' value='${p.bmrm||''}'></div><div class='f full'><label>Glucides habituels au déjeuner (g, optionnel)</label><input type='number' id='pbk' value='${p.bkC||''}'></div><div class='f'><label>Heure habituelle du souper</label><input type='time' id='pDinner' value='${CFG.dinnerTime||'19:15'}'></div><div class='f'><label>Heure habituelle du coucher</label><input type='time' id='pBed' value='${CFG.bedTime||'22:30'}'></div><div class='f full'><label>Activité quotidienne hors entraînement</label><select id='pp'>${[[1.3,'Sédentaire (bureau)'],[1.4,'Modérée'],[1.5,'Très active']].map(o=>`<option value='${o[0]}' ${p.pal==o[0]?'selected':''}>${o[1]} ×${o[0]}</option>`).join('')}</select></div></div><div class='hd'>Connexions aux plateformes</div>
+function openProf(){const p=PROF;openSheet(`<div class='mh'><div class='mt'>⚙️ Profil</div><button class='x' onclick='closeSheet()'>✕</button></div><div class='f full'><label>Langue / Language</label><select id='uiLang' onchange='setUiLanguage(this.value)'><option value='fr'>Français</option><option value='en'>English</option></select></div><div class='fg'><div class='f'><label>Nom</label><input id='pn' value='${p.name||''}'></div><div class='f'><label>Sexe</label><select id='ps'><option value='m' ${p.sex=='m'?'selected':''}>Homme</option><option value='f' ${p.sex=='f'?'selected':''}>Femme</option></select></div><div class='f'><label>Âge</label><input type='number' id='pa' value='${p.age}'></div><div class='f'><label>Taille (cm)</label><input type='number' id='ph' value='${p.h}'></div><div class='f'><label>Poids (kg)</label><input type='number' id='pk' value='${$('kg').value}'></div><div class='f'><label>FTP (W)</label><input type='number' id='pf' value='${$('ftp').value}'></div><div class='f'><label>% gras (optionnel)</label><input type='number' id='pb' value='${p.bf||''}'></div><div class='f'><label>BMR mesuré (optionnel)</label><input type='number' id='pm' value='${p.bmrm||''}'></div><div class='f full'><label>Glucides habituels au déjeuner (g, optionnel)</label><input type='number' id='pbk' value='${p.bkC||''}'></div><div class='f'><label>Heure habituelle du souper</label><input type='time' id='pDinner' value='${CFG.dinnerTime||'19:15'}'></div><div class='f'><label>Heure habituelle du coucher</label><input type='time' id='pBed' value='${CFG.bedTime||'22:30'}'></div><div class='f full'><label>Activité hors vélo</label><select id='pp'>${[[1.3,'Sédentaire (bureau)'],[1.4,'Modérée'],[1.5,'Très active']].map(o=>`<option value='${o[0]}' ${p.pal==o[0]?'selected':''}>${o[1]} ×${o[0]}</option>`).join('')}</select></div></div><div class='hd'>Connexions aux plateformes</div>
 <div class='sb'>État actuel : cette version peut lire des données via Intervals.icu avec ta clé API. Ce n’est pas encore une connexion OAuth officielle directe à Garmin, Wahoo ou WHOOP. N’entre jamais un mot de passe Garmin/WHOOP ici.</div>
 <div class='ex'>Pour activer des connexions directes par compte, PERFMASTER devra être hébergé avec un serveur sécurisé, des identifiants développeur approuvés et OAuth. Les clés privées ne doivent jamais être stockées dans le HTML ou dans localStorage.</div>
 <div class='ex'><a href='https://developerportal.garmin.com/developer-programs/connect-developer-api' target='_blank' rel='noopener' style='color:var(--cy)'>Garmin Connect Developer</a> · <a href='https://developers.wahooligan.com/cloud' target='_blank' rel='noopener' style='color:var(--cy)'>Wahoo Cloud API</a> · <a href='https://developer.whoop.com/docs/developing/overview/' target='_blank' rel='noopener' style='color:var(--cy)'>WHOOP Developer</a></div>
 <div class='hd'>Synchronisation actuelle via Intervals.icu</div><div class='fg'><div class='f'><label>ID athlète (0 = moi)</label><input id='pii' value='${p.iid||'0'}'></div><div class='f'><label>Clé API Intervals.icu</label><input id='pik' type='password' value='${p.ikey||''}'></div></div><button class='btn b' onclick='syncIv()'>Synchroniser maintenant</button><div class='ex'>Lie les services compatibles à Intervals.icu, puis utilise une clé API personnelle. La clé reste stockée localement dans ce prototype : ne partage pas ce fichier ni ton appareil avec une personne non autorisée.</div><div class='sb' id='pinfo'></div>
 <div class='hd'>Méthode scientifique & limites</div>
 <div class='ex'>Les calories affichées sont des estimations, pas une mesure directe. La dépense cycliste estimée à partir des watts est généralement plus individualisée que la seule durée, mais elle dépend du rendement individuel; le métabolisme de repos et l’activité hors vélo restent des sources d’incertitude. Ajuste les estimations à partir des tendances de poids, de la charge réelle et des données de puissance, idéalement avec un diététiste du sport.</div>
-<div class='ex'><a href='https://hexis.live/athlete-app' target='_blank' rel='noopener' style='color:var(--cy)'>HEXIS : périodisation par séance et fenêtre publique de 72 h</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/41130458/' target='_blank' rel='noopener' style='color:var(--cy)'>UCI Sports Nutrition Project : périodisation nutritionnelle (2025/2026)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/40117058/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue : besoins en protéines des athlètes d’endurance (2025)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/42968311/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue : glucides pendant l’effort d’endurance (novembre 2026)</a><br><a href='https://bjsm.bmj.com/content/57/17/1073' target='_blank' rel='noopener' style='color:var(--cy)'>Consensus CIO : disponibilité énergétique et REDs (2023)</a><br><a href='https://doi.org/10.1136/bjsports-2019-101961' target='_blank' rel='noopener' style='color:var(--cy)'>Consensus nutrition sportive : lipides et disponibilité énergétique (2019)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/36404133/' target='_blank' rel='noopener' style='color:var(--cy)'>Étude : dépense énergétique des cyclistes professionnels (2022)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/41911915/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue UCI : besoins énergétiques et disponibilité énergétique en cyclisme (2026)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/41911900/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue UCI : nutrition de course sur route (2026)</a></div>
-<div class='sb'>Repères de calcul : périodisation glucidique par séance et par repas sur 72 h, selon la durée, l'intensité, le ravitaillement réellement prévu et la prochaine séance. Cette approche s'inspire des principes publiquement décrits par HEXIS et du cadre Fuel for the Work Required; elle ne reproduit pas l'algorithme propriétaire d'HEXIS. Les glucides intra-séance sont inclus une seule fois dans le total quotidien. Protéines : repère de 1,6–2,1 g/kg/j, généralement autour de 1,8 g/kg/j en endurance. Lipides : cible opérationnelle liée au poids (environ 0,9–1,2 g/kg/j selon la charge), indépendante des calories estimées; ce repère n'est pas une prescription universelle. Une proportion très basse maintenue plusieurs jours nécessite une vérification de l'apport énergétique global. Si les estimations énergétiques ne concordent pas avec les fourchettes nutritionnelles, l'app affiche un avertissement au lieu de gonfler artificiellement un macro. Les dépenses, surtout hors vélo, restent des estimations à ajuster avec les tendances réelles.</div>
+<div class='ex'><a href='https://pubmed.ncbi.nlm.nih.gov/36404133/' target='_blank' rel='noopener' style='color:var(--cy)'>Étude : dépense énergétique des cyclistes professionnels validée par eau doublement marquée (2022)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/41911915/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue UCI : besoins énergétiques et disponibilité énergétique en cyclisme (2026)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/41911900/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue UCI : nutrition de course sur route (2026)</a></div>
+<div class='sb'>La logique des repas et les cibles nutritionnelles existantes ont été conservées dans cette révision : je ne les ai pas recalibrées sans données individuelles validées.</div>
 <button class='btn' onclick='saveProf()'>Enregistrer</button><div class='hd'>Données & séances</div><button class='btn b' onclick='$("sf").click()'>Importer une séance (.tcx / .gpx)</button><input type='file' id='sf' accept='.tcx,.gpx,.xml' style='display:none' onchange='impSess(this)'><button class='btn b' onclick='expData()'>Exporter mes données</button><button class='btn b' onclick='$("sd").click()'>Importer mes données</button><input type='file' id='sd' accept='.json' style='display:none' onchange='impData(this)'><button class='btn' style='background:var(--cd);color:var(--t);border:1px solid var(--bd)' onclick='logout()'>Se déconnecter (${ME})</button>`);profInfo()}
 function saveProf(){CFG.dinnerTime=$('pDinner').value||'19:15';CFG.bedTime=$('pBed').value||'22:30';try{localStorage.setItem('gb27cfg',JSON.stringify(CFG))}catch(e){}PROF=Object.assign(PROF,{name:$('pn').value,sex:$('ps').value,age:+$('pa').value||30,h:+$('ph').value||178,bf:+$('pb').value||0,bmrm:+$('pm').value||0,pal:+$('pp').value,bkC:+$('pbk').value||0,ikey:$('pik').value.trim(),iid:$('pii').value.trim()||'0'});$('kg').value=+$('pk').value||72;$('ftp').value=+$('pf').value||280;try{localStorage.setItem('gb27prof',JSON.stringify(PROF))}catch(e){}save();closeSheet();render();toast('Profil enregistré ✓')}
 function pmc(P){const sel=$('day').value,ft=+$('ftp').value||280,T=k=>{const p=PLANS[k];if(!p||+p.dur==0)return 0;const w=+p.watts,i=w?w/ft:.7;return+p.dur*i*i*100};
@@ -754,9 +686,9 @@ function pmc(P){const sel=$('day').value,ft=+$('ftp').value||280,T=k=>{const p=P
  const tips=[],ffm=P.kg*(PROF.bf?1-PROF.bf/100:.85),ea=(P.tgt.kcal-(P.EE-P.NE))/ffm,tm1=o.find(x=>x.i==1).t;
  if(z.s<-30)tips.push('⚠️ Fatigue élevée (TSB '+sg(z.s)+') : sommeil, glucides élevés et séance légère.');else if(z.s>15)tips.push('Tu es très frais : bon moment pour une séance clé.');
  if(tm1>=100)tips.push(`Demain séance dure (TSS ≈ ${Math.round(tm1)}) : vise 8–10 g/kg de glucides sur les 24 h avant.`);
- if(ea<30)tips.push(`⚠️ Disponibilité énergétique estimée ≈ ${Math.round(ea)} kcal/kg de masse maigre : signal de prudence à interpréter avec le contexte (ce chiffre n'est pas un diagnostic ni un seuil universel).`);
+ if(ea<30)tips.push(`⚠️ Disponibilité énergétique ≈ ${Math.round(ea)} kcal/kg de masse maigre (seuil bas : 30).`);
  if(P.dur>=2.5&&$('hot').checked)tips.push('Chaleur + longue sortie : commence hydraté et suis le sodium prévu.');
- if(WELL.tip)tips.push('😴 '+WELL.tip);if(P.def<0)tips.push(`Prise de masse : surplus visé ≈ +${-P.def} kcal; répartis les protéines sur 4–5 prises et garde les glucides autour des séances.`);if(P.def>0)tips.push(`Affûtage : déficit estimé ≈ −${P.def} kcal; il est supprimé automatiquement les journées d'entraînement exigeantes.`);if(P.rcx&&P.rcx.load)tips.push(`Veille de course : charge glucidique (≈ ${P.rcx.load} g/kg sur 24 h), féculents à chaque repas sans excès, peu de fibres.`);if(P.rcx&&P.rcx.day)tips.push(`Jour de course (${P.rcx.day.n}) : déjeuner ≈ 3 h avant (≈ 2,5 g/kg), boisson d’attente jusqu’au départ, ${P.rate} g/h en course. Bicarbonate (0,3 g/kg, 2–2,5 h avant) seulement s’il a été testé à l’entraînement.`);if(!tips.length)tips.push('Rien à signaler : suis le plan du jour.');
+ if(WELL.tip)tips.push('😴 '+WELL.tip);if(P.def<0)tips.push(`Prise de masse : surplus visé ≈ +${-P.def} kcal, protéines 2,0 g/kg en 4–5 prises, repas glucides + protéines dans l’heure après la séance.`);if(P.def>0)tips.push(`Affûtage (perte de poids) : objectif ≈ −${P.def} kcal sous ta dépense, protéines 2,1 g/kg, glucides gardés autour de la séance.`);if(P.rcx&&P.rcx.load)tips.push(`Veille de course : charge glucidique (≈ ${P.rcx.load} g/kg sur 24 h), féculents à chaque repas sans excès, peu de fibres.`);if(P.rcx&&P.rcx.day)tips.push(`Jour de course (${P.rcx.day.n}) : déjeuner ≈ 3 h avant (≈ 2,5 g/kg), boisson d’attente jusqu’au départ, ${P.rate} g/h en course. Bicarbonate (0,3 g/kg, 2–2,5 h avant) seulement s’il a été testé à l’entraînement.`);if(!tips.length)tips.push('Rien à signaler : suis le plan du jour.');
  $('v-home').insertAdjacentHTML('beforeend',`<div class='hm' style='padding-top:0'><div class='sec'>🤖 Coach</div><div class='sb'>${tips.join('<br>')}</div></div>`)}
 let PREV='home';
 let RACES=[],FOODS=[];
@@ -817,7 +749,7 @@ function deleteSession(d,id){
 }
 function newSession(d,sport){
  const id='s'+Date.now()+Math.random().toString(36).slice(2,6);
- const cfg=Object.assign({},DEF,{sport,dur:'1',ride:'09:30',watts:sport==='bike'?'205':'0'});
+ const cfg=Object.assign({},DEF,{sport,dur:'1',ride:'09:30',watts:'0'});
  const list=sessionList(d);list.push({id,cfg,planned:true,source:'manual'});$('day').value=d;
  try{localStorage.setItem('gb27sessions',JSON.stringify(SESSIONS));}catch(e){console.warn('Séance conservée en mémoire uniquement',e);}
  // Ouvrir systématiquement le formulaire : une erreur de stockage ne doit pas rendre le bouton inerte.
@@ -878,69 +810,25 @@ async function syncIv(q){if($('pik')){PROF.ikey=$('pik').value.trim();PROF.iid=$
  const hd={Authorization:'Basic '+btoa('API_KEY:'+PROF.ikey)},b='https://intervals.icu/api/v1/athlete/'+(PROF.iid||0),t=iso(new Date()),g=u=>fetch(b+u,{headers:hd}).then(r=>{if(!r.ok)throw 0;return r.json()});
  try{const[A,E,Wl]=await Promise.all([g('/activities?oldest='+addD(t,-21)+'&newest='+t),g('/events?category=WORKOUT&oldest='+t+'&newest='+addD(t,28)),g('/wellness?oldest='+addD(t,-7)+'&newest='+t)]);
   const ftp=+$('ftp').value||280;let n=0;
-  const normSport=v=>{v=String(v||'').toLowerCase();return /run|course/.test(v)?'run':/strength|weight|muscu/.test(v)?'strength':/swim|natation|pool/.test(v)?'swim':/ski|nordic/.test(v)?'ski':'bike'};
-  const mins=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})(?::.*)?$/);return m?Number(m[1])*60+Number(m[2]):null};
-  const timeGap=(a,b)=>{const x=mins(a),y=mins(b);return x===null||y===null?null:Math.abs(x-y)};
-  // Match a completed activity to a planned workout on the same local date.
-  // Duration is deliberately NOT a hard condition: the athlete may finish
-  // earlier/later than planned. With multiple same-sport sessions, use start
-  // time and refuse ambiguous matches rather than replacing the wrong workout.
-  const findPlannedMatch=(list,cfg)=>{
-   const candidates=list.filter(z=>z&&z.cfg&&z.planned!==false&&normSport(z.cfg.sport)===normSport(cfg.sport));
-   if(!candidates.length)return null;
-   if(candidates.length===1)return candidates[0];
-   const ranked=candidates.map(z=>({z,g:timeGap(z.cfg.ride,cfg.ride)})).filter(x=>x.g!==null&&x.g<=480).sort((a,b)=>a.g-b.g);
-   if(!ranked.length)return null;
-   if(ranked.length>1&&ranked[1].g-ranked[0].g<30)return null; // ambiguous: do not overwrite another session
-   return ranked[0].z;
-  };
-  const findActualMatch=(list,cfg)=>{
-   const candidates=list.filter(z=>z&&z.cfg&&z.source==='intervals'&&z.planned===false&&normSport(z.cfg.sport)===normSport(cfg.sport));
-   const ranked=candidates.map(z=>({z,g:timeGap(z.cfg.ride,cfg.ride)})).filter(x=>x.g!==null&&x.g<=480).sort((a,b)=>a.g-b.g);
-   return ranked.length?ranked[0].z:null;
-  };
   const put=(sec,watts,st,sport,pace,calories,sourceId,isPlanned=false)=>{
    if(!st||!sec)return;const k=String(st).slice(0,10),rawStart=String(st).slice(11,16),start=/^\d{2}:\d{2}$/.test(rawStart)?rawStart:'09:00',h=Number(sec)/3600;if(!Number.isFinite(h)||h<=0)return;
-   const cleanStart=String(start).match(/^\d{2}:\d{2}$/)?String(start):'09:00';
+   // Normalise l'heure et la durée importées : jamais de secondes/fractions dans l'affichage.
+   const cleanStart=String(start).match(/^(\d{2}):(\d{2})$/)?String(start):'09:00';
    const roundedHours=Math.round(h*20)/20;
    const cfg=Object.assign({},DEF,{dur:String(roundedHours),ride:cleanStart,sport:sport||'bike',watts:String(Math.round(Number(watts)||0)),...(pace?{pace:String(pace)}:{}),...(calories>0?{eeOverride:Math.round(Number(calories))}:{})});
-   const list=sessionList(k),sid=String(sourceId||'');
-   // Stable source ID makes repeated syncs idempotent.
-   let item=list.find(z=>z&&z.source==='intervals'&&z.sourceId&&String(z.sourceId)===sid);
-   if(isPlanned){
-    // If Intervals.icu still exposes a completed activity and its old planned
-    // event, keep the completed activity as the single source of truth.
-    const completed=findActualMatch(list,cfg);
-    if(completed){n++;return;}
-    if(!item){
-     item=list.find(z=>z&&z.source==='intervals'&&z.planned===true&&z.cfg&&normSport(z.cfg.sport)===normSport(cfg.sport)&&timeGap(z.cfg.ride,cfg.ride)!==null&&timeGap(z.cfg.ride,cfg.ride)<=30);
-    }
-    if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sid;item.planned=true;}
-    else list.push({id:'iv_'+String(sid||k+'_'+cleanStart).replace(/[^a-zA-Z0-9_-]/g,'_'),cfg,source:'intervals',sourceId:sid,planned:true});
-   }else{
-    if(item&&item.planned===false){
-     // Clean up a duplicate manual/planned entry left by an older sync version.
-     // Keep the already-imported activity and remove only its confidently
-     // matched planned counterpart.
-     const stalePlan=findPlannedMatch(list,cfg);
-     if(stalePlan&&stalePlan!==item){const ix=list.indexOf(stalePlan);if(ix>=0)list.splice(ix,1);}
-    }else if(!item){
-     // Completed activity replaces its matching manual OR Intervals-planned
-     // session. A same-day unique sport match is accepted even if duration or
-     // start differs; multiple same-sport sessions require a clear time match.
-     item=findPlannedMatch(list,cfg);
-    }
-    if(item){
-     item.cfg=cfg;item.source='intervals';item.sourceId=sid;item.planned=false;
-     item.replacedPlanned=true;
-    }else{
-     // Refresh an already imported activity with a nearby start if its source
-     // ID changed, but never merge two distinct same-sport workouts blindly.
-     const existing=findActualMatch(list,cfg);
-     if(existing){existing.cfg=cfg;existing.sourceId=sid;existing.planned=false;item=existing;}
-     else list.push({id:'iv_'+String(sid||k+'_'+cleanStart).replace(/[^a-zA-Z0-9_-]/g,'_'),cfg,source:'intervals',sourceId:sid,planned:false});
-    }
+   const list=sessionList(k);let item=list.find(z=>z.sourceId&&String(z.sourceId)===String(sourceId));
+   if(!item&&!isPlanned){
+    const mins=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})(?::.*)?$/);return m?Number(m[1])*60+Number(m[2]):null};
+    const actualMin=mins(cleanStart);
+    const normSport=v=>{v=String(v||'').toLowerCase();return /run|course/.test(v)?'run':/strength|weight|muscu/.test(v)?'strength':/swim|natation/.test(v)?'swim':/ski|nordic/.test(v)?'ski':'bike'};
+    // Une activité réalisée remplace une séance manuelle similaire : même sport,
+    // durée proche (±30 min) et horaire raisonnablement proche (jusqu'à 6 h).
+    item=list.find(z=>z&&z.cfg&&z.source!=='intervals'&&z.planned!==false&&normSport(z.cfg.sport)===normSport(cfg.sport)&&Math.abs((Number(z.cfg.dur)||0)-roundedHours)<=0.5&&actualMin!==null&&mins(z.cfg.ride)!==null&&Math.abs(mins(z.cfg.ride)-actualMin)<=360);
+    if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sourceId;item.planned=false;item.id=item.id||'iv_'+String(sourceId||k+'_'+cleanStart).replace(/[^a-zA-Z0-9_-]/g,'_');}
    }
+   if(!item)item=list.find(z=>z.source==='intervals'&&z.cfg&&z.cfg.ride===start&&z.cfg.sport===cfg.sport&&!!z.planned===!!isPlanned);
+   if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sourceId;item.planned=!!isPlanned;}
+   else list.push({id:'iv_'+String(sourceId||k+'_'+start).replace(/[^a-zA-Z0-9_-]/g,'_'),cfg,source:'intervals',sourceId:sourceId||'',planned:!!isPlanned});
    SESSIONS[k]=list;localStorage.setItem('gb27sessions',JSON.stringify(SESSIONS));
    if(!PLANS[k]||!Number(PLANS[k].dur))PLANS[k]=Object.assign({},cfg);
    n++;
@@ -959,26 +847,16 @@ async function syncIv(q){if($('pik')){PROF.ikey=$('pik').value.trim();PROF.iid=$
   localStorage.setItem('gb27plans',JSON.stringify(PLANS));loadDay();save();render();cal();if(!q)toast(n+' séance(s) synchronisée(s)')}catch(x){console.error(x);if(!q)toast('Synchronisation impossible (clé ? réseau ?)')}}
 function shift(n){const d=new Date($('day').value+'T12:00');d.setDate(d.getDate()+n);$('day').value=iso(d);loadDay();render()}
 function dl(){const k=$('day').value,d=new Date(k+'T12:00'),df=Math.round((d-new Date(iso(new Date())+'T12:00'))/864e5),r=df==0?'Aujourd’hui':df==-1?'Hier':df==1?'Demain':'';$('dlab').textContent=(r?r+' · ':'')+d.toLocaleDateString('fr-CA',{weekday:'short',day:'numeric',month:'short'})}
-function enRender(P,lg,mode,now){
- const base=P.NE/1440,cl=x=>Math.max(0,Math.min(1,x));
- // P.sessions is populated for both an unsaved single workout and saved multi-workout days.
- const sessions=P.sessions||[],fuelSessions=(P.sessionFuel||[]).filter(s=>Number(s.total)>0&&Number(s.dur)>0);
- const progress=(s,t)=>{const st=tm(s.start),en=st+Number(s.dur)*60;return en<=st?0:cl((t-st)/(en-st));};
- const exerciseAt=t=>sessions.reduce((sum,s)=>sum+(Number(s.netKcal)||0)*progress(s,t),0);
- const exp=t=>base*t+exerciseAt(t);
- const totalFuel=fuelSessions.reduce((a,s)=>a+Number(s.total||0),0);
- const fuelProgress=t=>fuelSessions.length?fuelSessions.reduce((a,s)=>a+Number(s.total||0)*progress(s,t),0)/Math.max(1,totalFuel):((P.dur>0)?cl((t-P.R)/Math.max(1,P.E-P.R)):0);
- const at=(m,t)=>m=='ride'?fuelProgress(t):((P.ev.find(x=>x.id==m)||{t:9999}).t<=t?1:0);
- const got=t=>lg.reduce((n,l)=>n+kcalOf(l)*at(l.m,t),0);
- const pl=t=>{let n=0;P.ev.forEach(e=>{if(!mealIsLogged(e.id,lg)&&(mode=='future'||e.t>=now)&&e.t<=t)n+=e.kcal});if(totalFuel>0&&!lg.some(l=>l.m=='ride'))n+=totalFuel*4*fuelProgress(t);else if(!fuelSessions.length&&P.intraC>0&&!lg.some(l=>l.m=='ride')&&(mode=='future'||P.R>=now))n+=P.intraC*4*at('ride',t);return n};
+function enRender(P,lg,mode,now){const base=P.NE/1440,cl=x=>Math.max(0,Math.min(1,x)),sessions=P.sessions||[],exerciseAt=t=>sessions.reduce((sum,s)=>{const st=tm(s.start),en=st+s.dur*60,portion=en<=st?0:cl((t-st)/(en-st));return sum+(Number(s.netKcal)||0)*portion},0),exp=t=>base*t+exerciseAt(t),at=(m,t)=>m=='ride'?cl((t-P.R)/(P.E-P.R)):((P.ev.find(x=>x.id==m)||{t:9999}).t<=t?1:0),got=t=>lg.reduce((n,l)=>n+kcalOf(l)*at(l.m,t),0),
+ pl=t=>{let n=0;P.ev.forEach(e=>{if(!mealIsLogged(e.id,lg)&&(mode=='future'||e.t>=now)&&e.t<=t)n+=e.kcal});if(P.dur&&!lg.some(l=>l.m=='ride')&&(mode=='future'||P.R>=now))n+=P.intraC*4*at('ride',t);return n};
  const A=[],Q=[];for(let t=0;t<=1440;t+=20){A.push([t,got(t)-exp(t)]);Q.push([t,got(t)+pl(t)-exp(t)])}
  const live=mode=='today'?got(now)-exp(now):mode=='past'?A[72][1]:0,end=mode=='past'?A[72][1]:Q[72][1],vs=A.concat(Q).map(p=>p[1]),mn=Math.min(...vs,0),mx=Math.max(...vs,0),X=t=>10+t/1440*300,Y=v=>130-(v-mn)/(mx-mn||1)*120,
  ln=(a,f,c,d)=>`<polyline fill='none' stroke='${c}' stroke-width='2.5' ${d?`stroke-dasharray='5 4'`:''} points='${a.filter(p=>f(p[0])).map(p=>X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join(' ')}'/>`;
- $('en').innerHTML=`<div class='dt'><span>⚡ Énergie en direct</span><span style='color:var(--g)'>${mode=='future'?'—':sg(live)+' kcal'}</span></div><svg viewBox='0 0 320 150' style='width:100%;background:var(--bg);border-radius:14px'><line x1='10' x2='310' y1='${Y(0)}' y2='${Y(0)}' stroke='#3b4a63' stroke-dasharray='3 3'/>`+(mode=='past'?'':ln(Q,t=>mode=='future'||t>=now-20,'#6b7280',1))+(mode=='future'?'':ln(A,t=>mode=='past'||t<=now,'#3b82f6'))+(mode=='today'?`<line x1='${X(now)}' x2='${X(now)}' y1='5' y2='135' stroke='#10b981'/>`:'')+[0,6,12,18,24].map(h=>`<text x='${X(h*60)}' y='147' fill='#6b7280' font-size='9' text-anchor='middle'>${h}h</text>`).join('')+`</svg><div class='mg' style='grid-template-columns:1fr 1fr 1fr;margin-top:.6rem'><div class='mp'><div class='mv'>${P.EE}</div><div class='ml'>Dépense estimée</div></div><div class='mp'><div class='mv' style='color:var(--cy)'>${sg(end)}</div><div class='ml'>Bilan fin de journée (mangé − dépensé)</div></div><div class='mp'><div class='mv' style='color:var(--o)'>${Math.round(P.EE-P.NE)}</div><div class='ml'>Dont sortie (kcal)</div></div></div><div class='ex'>Bilan prévisionnel = calories des repas enregistrés + repas prévus non enregistrés − dépense estimée. La dépense est estimée séance par séance selon le sport, la durée, l’intensité et les données de vitesse ou de puissance disponibles. Négatif = déficit énergétique ; proche de 0 = équilibre. En affûtage, le déficit est volontairement petit et suspendu les jours exigeants ; en prise de masse, le surplus reste modeste.</div>`}
+ $('en').innerHTML=`<div class='dt'><span>⚡ Énergie en direct</span><span style='color:var(--g)'>${mode=='future'?'—':sg(live)+' kcal'}</span></div><svg viewBox='0 0 320 150' style='width:100%;background:var(--bg);border-radius:14px'><line x1='10' x2='310' y1='${Y(0)}' y2='${Y(0)}' stroke='#3b4a63' stroke-dasharray='3 3'/>`+(mode=='past'?'':ln(Q,t=>mode=='future'||t>=now-20,'#6b7280',1))+(mode=='future'?'':ln(A,t=>mode=='past'||t<=now,'#3b82f6'))+(mode=='today'?`<line x1='${X(now)}' x2='${X(now)}' y1='5' y2='135' stroke='#10b981'/>`:'')+[0,6,12,18,24].map(h=>`<text x='${X(h*60)}' y='147' fill='#6b7280' font-size='9' text-anchor='middle'>${h}h</text>`).join('')+`</svg><div class='mg' style='grid-template-columns:1fr 1fr 1fr;margin-top:.6rem'><div class='mp'><div class='mv'>${P.EE}</div><div class='ml'>Dépense estimée</div></div><div class='mp'><div class='mv' style='color:var(--cy)'>${sg(end)}</div><div class='ml'>Bilan fin de journée (mangé − dépensé)</div></div><div class='mp'><div class='mv' style='color:var(--o)'>${Math.round(P.EE-P.NE)}</div><div class='ml'>Dont sortie (kcal)</div></div></div><div class='ex'>Bilan prévisionnel = calories des repas enregistrés + repas prévus non enregistrés − dépense estimée. En mode normal, aucun déficit volontaire n’est programmé. La planification glucidique tient compte des séances de la veille, du jour et du lendemain (fenêtre de 72 h) ; les glucides intra-séance sont inclus une seule fois. Négatif = apport inférieur à la dépense estimée ; cela ne prouve pas à lui seul un déficit réel, car la dépense reste une estimation.</div>${P.energyMacroGap>200?`<div class='ex' style='color:var(--o)'>⚠️ Les macros prévues restent ${P.energyMacroGap} kcal sous la dépense estimée. Vérifie d’abord la puissance, la durée et les calories importées : ne compense pas automatiquement cet écart par un surplus de nourriture.</div>`:''}`}
 function recup(P){const kg=P.kg,E=P.E,hot=$('hot').checked,W=tm($('wake').value),bed=(W-510+1440)%1440,bt=bed<720?bed+1440:bed,S=[];
  if(P.dur){const cH=Math.round(kg*(P.dur>=2.5||P.hasQ?1.2:1)),pr=Math.round(.3*kg),r=P.ev.find(e=>e.rec&&e.t>=E);
   S.push([E,'⚖️','Pesée et hydratation','Pèse-toi avant/après : bois 150 % du poids perdu (≈ 1,5 L par kg). '+(hot?'Chaleur : ajoute 500–700 mg de sodium par litre.':'Ajoute une pincée de sel ou une boisson d’électrolytes.')],[E+10,'🥤','Glucides + protéines (0–30 min)',`≈ ${cH} g de glucides + ${pr} g de protéines${r?' — prévu à '+fm(r.t):''}.`],[E+30,'🦵','Retour au calme','10–15 min de marche, mobilité douce, jambes surélevées 10 min.'],[E+100,'🍽️','Repas complet','Dans les 2 h : féculents + protéines maigres + légumes colorés.']);
-  if(P.sport==="strength"||(P.sessions||[]).some(x=>x&&x.sport==="strength"))S.push([E+120,'💪','Protéines post-musculation',`≈ ${Math.round(.4*kg)} g de protéines dans les 2 h.`]);
+  if(sport==="strength")S.push([E+120,'💪','Protéines post-musculation',`≈ ${Math.round(.4*kg)} g de protéines dans les 2 h.`]);
   if(P.dur>=3||P.hasQ)S.push([E+200,'🔋','Séance dure : recharge','Vise ≥ 8 g/kg de glucides sur 24 h et ne saute aucun repas ce soir.'])
  }else S.push([W+60,'🌿','Jour de repos','Glucides modérés, protéines réparties toutes les 3–4 h (≈ 0,4 g/kg), marche légère.']);
  if($('caf').checked&&P.dur)S.push([bt-360,'☕','Dernière caféine','Aucune caféine dans les 6 h avant le coucher.']);
