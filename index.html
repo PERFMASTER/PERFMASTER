@@ -283,11 +283,11 @@ function nutritionFuelRate(m,mode,raceDay){
  else if(m.dur<=1.5)rate=hard?45:moderate?30:0;
  else if(m.dur<=2.5)rate=hard?60:moderate?45:30;
  else if(m.dur<=3.5)rate=hard?75:moderate?60:45;
- else rate=hard?90:moderate?60:45;
- // Conservative sport-specific caps; progress gut tolerance before increasing.
+ else rate=hard?75:moderate?60:45;
+ // Conservative sport-specific caps; higher intakes require demonstrated gut training and should not be auto-prescribed.
  if(m.sport==='run'||m.sport==='swim')rate=Math.min(rate,60);
  if(m.sport==='ski')rate=Math.min(rate,75);
- return Math.max(0,Math.min(90,Math.round(rate)));
+ return Math.max(0,Math.min(75,Math.round(rate))); // conservative default without a documented gut-training/tolerance profile
 }
 function nutritionSessionsForDay(dayKey){
  const saved=SESSIONS&&SESSIONS[dayKey];
@@ -329,8 +329,8 @@ function evidenceMacroTargets(kg,energy,intra,mode,enduranceHours,strengthHours,
  const bodyMass=Math.max(35,Number(kg)||70),eh=Math.max(0,Number(enduranceHours)||0),sh=Math.max(0,Number(strengthHours)||0);
  const energyKcal=Math.max(0,Number(energy)||0),intraG=Math.max(0,Math.round(Number(intra)||0)),ctx=context||{};
  const intensity=Math.max(0,Math.min(1,Number(intensityIndex)||0));
- // Protein: 1.8 g/kg is a contemporary endurance-athlete anchor; mixed/strength,
- // body-composition and high-load contexts use a modest increase within 1.6–2.1.
+ // Protein is anchored to current endurance-sport evidence (1.6–2.1 g/kg/day).
+ // Mixed endurance/strength work moves the target modestly upward, never by calories.
  let proteinKg=1.8;
  if(sh>0)proteinKg=1.9;
  if(sh>=1.5)proteinKg=2.0;
@@ -338,48 +338,30 @@ function evidenceMacroTargets(kg,energy,intra,mode,enduranceHours,strengthHours,
  if(mass)proteinKg=Math.max(proteinKg,1.9);
  proteinKg=Math.min(2.1,proteinKg);
  const protein=Math.round(proteinKg*bodyMass);
- // No automatic aggressive cut on a demanding day. A small surplus is used in
- // mass mode; an affutage deficit is limited and removed on heavy/race days.
+ // Energy goal: no aggressive deficit on demanding days; mass mode uses a modest surplus.
  const demanding=eh>=2.5||intensity>=.72||!!ctx.raceDay||Number(ctx.previousRecovery)>=.35||Number(ctx.nextPreparation)>=.30||Number(ctx.raceLoad)>=9;
  const deficit=aff&&!demanding?Math.min(200,Math.round(energyKcal*.05)):0;
  const surplus=mass?Math.min(200,Math.round(energyKcal*.05)):0;
  const targetKcal=Math.max(0,energyKcal-deficit+surplus);
- // Daily carbohydrate bands follow the workload of the whole day. The intensity
- // index is duration-weighted IF² (or a sport estimate), not an absolute diagnosis.
- const level=intensity<.32?0:intensity<.58?1:2; // easy / moderate / high
+ // Daily CHO bands are workload-based. They are NOT increased merely to fill an
+ // estimated calorie total. The 72-hour context shifts the athlete within the band.
+ const level=intensity<.32?0:intensity<.58?1:2;
  let lo,hi;
- if(eh<=0){
-  if(sh>=1.5){lo=3.5;hi=5.5;}
-  else if(sh>0){lo=3;hi=5.2;}
-  else{lo=3;hi=5;}
- }else if(eh<=1){
-  if(level===0){lo=3;hi=5;}else if(level===1){lo=5;hi=7;}else{lo=5.5;hi=7.5;}
- }else if(eh<=2){
-  if(level===0){lo=4;hi=6;}else if(level===1){lo=5;hi=7;}else{lo=6;hi=8;}
- }else if(eh<=3){
-  if(level===0){lo=6;hi=8;}else if(level===1){lo=7;hi=9;}else{lo=8;hi=10;}
- }else if(eh<=4){
-  if(level===0){lo=7;hi=9;}else if(level===1){lo=8;hi=10;}else{lo=9;hi=11;}
- }else{
-  if(level===0){lo=8;hi=10;}else if(level===1){lo=9;hi=11;}else{lo=10;hi=12;}
-  // Exceptional long, very hard days may require >12 g/kg. This is reserved
-  // for >=4.5 h and a very high recorded workload, not just a long calendar entry.
-  if(eh>=4.5&&level===2&&Number(ctx.currentTss)>=300){lo=12;hi=14;}
- }
- // Apply 72-hour recovery/preparation by shifting the target within (or, on a
- // genuine next-day long session, expanding) the daily band. This mirrors the
- // public Fuel-for-the-Work-Required principle; it is not a HEXIS-code clone.
+ if(eh<=0){if(sh>=1.5){lo=3.5;hi=5.5;}else if(sh>0){lo=3;hi=5.2;}else{lo=3;hi=5;}}
+ else if(eh<=1){if(level===0){lo=3;hi=5;}else if(level===1){lo=5;hi=7;}else{lo=5.5;hi=7.5;}}
+ else if(eh<=2){if(level===0){lo=4;hi=6;}else if(level===1){lo=5;hi=7;}else{lo=6;hi=8;}}
+ else if(eh<=3){if(level===0){lo=6;hi=8;}else if(level===1){lo=7;hi=9;}else{lo=8;hi=10;}}
+ else if(eh<=4){if(level===0){lo=7;hi=9;}else if(level===1){lo=8;hi=10;}else{lo=9;hi=11;}}
+ else{if(level===0){lo=8;hi=10;}else if(level===1){lo=9;hi=11;}else{lo=10;hi=12;}if(eh>=4.5&&level===2&&Number(ctx.currentTss)>=300){lo=10;hi=12;}}
  if(eh<=0){
   if(Number(ctx.previousRecovery)>=.6){lo=Math.max(lo,4.5);hi=Math.max(hi,6.5);}
   const nx=ctx.next||{};
-  if(nx.enduranceHours>=4){
-   const nextIsVeryHard=Number(nx.intensity)>=.58&&Number(nx.tss)>=250;
-   lo=Math.max(lo,nextIsVeryHard?8:6.5);hi=Math.max(hi,nextIsVeryHard?10:9);
-  }else if(nx.enduranceHours>=3||nx.tss>=180){lo=Math.max(lo,6);hi=Math.max(hi,8.5);}
+  if(Number(ctx.raceLoad)>=9){lo=Math.max(lo,7.5);hi=Math.max(hi,10);}
+  else if(nx.enduranceHours>=4){const nextIsVeryHard=Number(nx.intensity)>=.58&&Number(nx.tss)>=250;lo=Math.max(lo,nextIsVeryHard?6.5:5.5);hi=Math.max(hi,nextIsVeryHard?8.5:7.5);}
+  else if(nx.enduranceHours>=3||nx.tss>=180){lo=Math.max(lo,5.5);hi=Math.max(hi,7.5);}
   else if(nx.enduranceHours>=2||nx.tss>=120){lo=Math.max(lo,5);hi=Math.max(hi,7);}
   else if(Number(ctx.nextPreparation)>=.35){lo=Math.max(lo,4);hi=Math.max(hi,6);}
  }
- // Strength changes protein/recovery requirements but does not add endurance hours.
  let desiredKg=lo+(hi-lo)*Math.max(0,Math.min(1,(intensity-.28)/(.74-.28)));
  if(sh>0)desiredKg+=Math.min(.25,sh*.15);
  desiredKg+=Math.min(.8,Math.max(0,Number(ctx.previousRecovery)||0)*.35)+Math.min(.8,Math.max(0,Number(ctx.nextPreparation)||0)*.45);
@@ -387,43 +369,34 @@ function evidenceMacroTargets(kg,energy,intra,mode,enduranceHours,strengthHours,
  desiredKg=Math.max(lo,Math.min(hi,desiredKg));
  const minCarbs=Math.max(Math.round(lo*bodyMass),intraG),maxCarbs=Math.max(minCarbs,Math.round(hi*bodyMass));
  let totalCarbs=Math.max(minCarbs,Math.min(maxCarbs,Math.round(desiredKg*bodyMass)));
- // Aim near 30% energy from fat when carbohydrate periodisation permits it;
- // keep the accepted guardrails at 20–35%. A high-volume day may require >30%.
- // Never force macros outside the evidence-informed daily CHO range to fake a match.
- if(targetKcal>0){
-  const carbsForFatMax=Math.ceil((targetKcal*.65-4*protein)/4); // minimum CHO for fat <=35%
-  const carbsForFatAim=Math.ceil((targetKcal*.70-4*protein)/4); // preferred: fat around <=30%
-  const carbsForFatMin=Math.floor((targetKcal*.80-4*protein)/4); // maximum CHO before fat <20%
-  const feasibleLow=Math.max(minCarbs,intraG,carbsForFatMax);
-  const feasibleHigh=Math.min(maxCarbs,carbsForFatMin);
-  if(feasibleLow<=feasibleHigh){
-   const preferred=Math.min(maxCarbs,Math.max(minCarbs,carbsForFatAim));
-   totalCarbs=Math.max(feasibleLow,Math.min(feasibleHigh,Math.max(totalCarbs,preferred)));
-  }else if(carbsForFatMax>maxCarbs){
-   // Energy demand is high relative to the daily CHO range: use its upper end
-   // before allowing the energy-gap warning to represent the residual.
-   totalCarbs=maxCarbs;
-  }else if(carbsForFatMin<minCarbs){
-   // Minimum session fueling already exceeds the energy/fat-share envelope.
-   totalCarbs=minCarbs;
-  }
- }
- const residualFatKcal=targetKcal-4*protein-4*totalCarbs;
- const minFatKcal=targetKcal*.20,maxFatKcal=targetKcal*.35;
- const fatKcal=targetKcal>0?Math.max(0,Math.min(maxFatKcal,Math.max(minFatKcal,residualFatKcal))):0;
- const fat=Math.round(fatKcal/9),kcal=4*protein+4*totalCarbs+9*fat;
- const mealCarbs=Math.max(0,totalCarbs-intraG),fatShare=targetKcal>0?(fat*9/targetKcal):0;
- const energyGap=Math.round(targetKcal-kcal),fatOutsideRange=targetKcal>0&&(fatShare<.195||fatShare>.355);
- const def=Math.round(energyKcal-targetKcal);
- const notes=[];
+ // If estimated energy requires more CHO, move upward only within the workload band.
+ // This supports energy adequacy without pushing fat upward or exceeding the CHO range.
+ const energyFitCarbs=targetKcal>0?Math.ceil((targetKcal-4*protein-9*(.9*bodyMass))/4):0;
+ totalCarbs=Math.max(totalCarbs,Math.min(maxCarbs,Math.max(minCarbs,energyFitCarbs)));
+ // FAT: set independently from estimated kcal to prevent inflated fat targets when
+ // exercise expenditure is overestimated. This is a pragmatic app target (0.9–1.2 g/kg),
+ // not a universal scientific requirement; energy adequacy and longer-term intake still matter.
+ let fatKg=.9;
+ if(eh>=1.5)fatKg+=.1;
+ if(eh>=4)fatKg+=.1;
+ if(sh>=1)fatKg+=.1;
+ fatKg=Math.max(.9,Math.min(1.2,fatKg));
+ let fat=Math.round(fatKg*bodyMass);
+ // If this practical target would exceed 35% of a low estimated energy day, move toward
+ // the lower end of the practical range. Never raise fat simply to fill the calorie gap.
+ if(targetKcal>0&&fat*9/targetKcal>.35){fatKg=.8;fat=Math.round(fatKg*bodyMass);}
+ const mealCarbs=Math.max(0,totalCarbs-intraG),kcal=4*protein+4*totalCarbs+9*fat;
+ const fatShare=targetKcal>0?(fat*9/targetKcal):0,energyGap=Math.round(targetKcal-kcal);
+ const fatOutsideRange=targetKcal>0&&(fatShare<.18||fatShare>.36);
+ const def=Math.round(energyKcal-targetKcal),notes=[];
  const energyGapLimit=Math.max(150,targetKcal*.04);
- if(energyGap>=energyGapLimit)notes.push(`Les macros couvrent ${kcal} kcal, soit ${energyGap} kcal de moins que la dépense estimée (${Math.round(targetKcal)} kcal). Vérifie le profil et les données de séance; ne force pas les macros pour combler cet écart.`);
- else if(energyGap<=-energyGapLimit)notes.push(`Les macros couvrent ${kcal} kcal, soit ${Math.abs(energyGap)} kcal de plus que la dépense estimée (${Math.round(targetKcal)} kcal). Cette hausse peut venir de la préparation d'une séance exigeante; vérifie le profil et le plan.`);
- if(fatOutsideRange)notes.push('La part des lipides sort de la plage de 20–35 % avec les glucides requis pour cette charge. Vérifie la dépense estimée.');
+ if(energyGap>=energyGapLimit)notes.push(`Les macros couvrent ${kcal} kcal, soit ${energyGap} kcal de moins que la dépense estimée (${Math.round(targetKcal)} kcal). Les glucides restent liés à la charge et les lipides au poids; vérifie l'estimation de dépense et les données de séance plutôt que de gonfler artificiellement les macros.`);
+ else if(energyGap<=-energyGapLimit)notes.push(`Les macros couvrent ${kcal} kcal, soit ${Math.abs(energyGap)} kcal de plus que la dépense estimée (${Math.round(targetKcal)} kcal). Vérifie le profil, le plan et l'estimation de dépense.`);
+ if(fatShare>0&&fatShare<.18)notes.push(`Les lipides représentent environ ${Math.round(fatShare*100)} % de l'énergie estimée. La cible n'est pas gonflée automatiquement; évite toutefois de maintenir une proportion très basse sur plusieurs jours et fais vérifier l'apport énergétique global.`);
+ if(fatShare>.36)notes.push('La proportion lipidique estimée est élevée par rapport à l’énergie du jour; vérifie la dépense et les aliments enregistrés.');
  if(intraG>Math.round(hi*bodyMass))notes.push('Le ravitaillement intra-séance dépasse la plage quotidienne habituelle : charge exceptionnelle à individualiser.');
  if(ctx.raceDay&&eh<=0)notes.push('Course prioritaire inscrite, mais aucune durée de séance n’est renseignée. Planifie ou synchronise la course pour calculer le ravitaillement et les besoins énergétiques.');
- const note=notes.join(' ');
- return{protein,carbs:mealCarbs,fat,kcal,totalCarbs,def,bodyMass,proteinKg,carbKg:bodyMass>0?totalCarbs/bodyMass:0,fatKg:bodyMass>0?fat/bodyMass:0,fatEnergyShare:fatShare,targetKcal,energyGap,fatOutsideRange,minCarbKg:lo,maxCarbKg:hi,intraG,desiredCarbKg:desiredKg,previousRecovery:ctx.previousRecovery||0,nextPreparation:ctx.nextPreparation||0,note};
+ return{protein,carbs:mealCarbs,fat,kcal,totalCarbs,def,bodyMass,proteinKg,carbKg:bodyMass>0?totalCarbs/bodyMass:0,fatKg:bodyMass>0?fat/bodyMass:0,fatEnergyShare:fatShare,targetKcal,energyGap,fatOutsideRange,minCarbKg:lo,maxCarbKg:hi,intraG,desiredCarbKg:desiredKg,previousRecovery:ctx.previousRecovery||0,nextPreparation:ctx.nextPreparation||0,note:notes.join(' ')};
 }
 function allocateNutritionMeals(ev,macro,dayKey,sessions){
  if(!Array.isArray(ev)||!ev.length)return;
@@ -769,7 +742,7 @@ function openProf(){const p=PROF;openSheet(`<div class='mh'><div class='mt'>⚙�
 <div class='hd'>Méthode scientifique & limites</div>
 <div class='ex'>Les calories affichées sont des estimations, pas une mesure directe. La dépense cycliste estimée à partir des watts est généralement plus individualisée que la seule durée, mais elle dépend du rendement individuel; le métabolisme de repos et l’activité hors vélo restent des sources d’incertitude. Ajuste les estimations à partir des tendances de poids, de la charge réelle et des données de puissance, idéalement avec un diététiste du sport.</div>
 <div class='ex'><a href='https://hexis.live/athlete-app' target='_blank' rel='noopener' style='color:var(--cy)'>HEXIS : périodisation par séance et fenêtre publique de 72 h</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/41130458/' target='_blank' rel='noopener' style='color:var(--cy)'>UCI Sports Nutrition Project : périodisation nutritionnelle (2025/2026)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/40117058/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue : besoins en protéines des athlètes d’endurance (2025)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/42968311/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue : glucides pendant l’effort d’endurance (novembre 2026)</a><br><a href='https://bjsm.bmj.com/content/57/17/1073' target='_blank' rel='noopener' style='color:var(--cy)'>Consensus CIO : disponibilité énergétique et REDs (2023)</a><br><a href='https://doi.org/10.1136/bjsports-2019-101961' target='_blank' rel='noopener' style='color:var(--cy)'>Consensus nutrition sportive : lipides et disponibilité énergétique (2019)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/36404133/' target='_blank' rel='noopener' style='color:var(--cy)'>Étude : dépense énergétique des cyclistes professionnels (2022)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/41911915/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue UCI : besoins énergétiques et disponibilité énergétique en cyclisme (2026)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/41911900/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue UCI : nutrition de course sur route (2026)</a></div>
-<div class='sb'>Repères de calcul : périodisation glucidique par séance et par repas sur 72 h, selon la durée, l'intensité, le ravitaillement réellement prévu et la prochaine séance. Cette approche s'inspire des principes publiquement décrits par HEXIS et du cadre Fuel for the Work Required; elle ne reproduit pas l'algorithme propriétaire d'HEXIS. Les glucides intra-séance sont inclus une seule fois dans le total quotidien. Protéines : repère de 1,6–2,1 g/kg/j, généralement autour de 1,8 g/kg/j en endurance. Lipides : généralement 20–35 % de l'énergie, sans plafond arbitraire en g/kg. Si les estimations énergétiques ne concordent pas avec les fourchettes nutritionnelles, l'app affiche un avertissement au lieu de gonfler artificiellement un macro. Les dépenses, surtout hors vélo, restent des estimations à ajuster avec les tendances réelles.</div>
+<div class='sb'>Repères de calcul : périodisation glucidique par séance et par repas sur 72 h, selon la durée, l'intensité, le ravitaillement réellement prévu et la prochaine séance. Cette approche s'inspire des principes publiquement décrits par HEXIS et du cadre Fuel for the Work Required; elle ne reproduit pas l'algorithme propriétaire d'HEXIS. Les glucides intra-séance sont inclus une seule fois dans le total quotidien. Protéines : repère de 1,6–2,1 g/kg/j, généralement autour de 1,8 g/kg/j en endurance. Lipides : cible opérationnelle liée au poids (environ 0,9–1,2 g/kg/j selon la charge), indépendante des calories estimées; ce repère n'est pas une prescription universelle. Une proportion très basse maintenue plusieurs jours nécessite une vérification de l'apport énergétique global. Si les estimations énergétiques ne concordent pas avec les fourchettes nutritionnelles, l'app affiche un avertissement au lieu de gonfler artificiellement un macro. Les dépenses, surtout hors vélo, restent des estimations à ajuster avec les tendances réelles.</div>
 <button class='btn' onclick='saveProf()'>Enregistrer</button><div class='hd'>Données & séances</div><button class='btn b' onclick='$("sf").click()'>Importer une séance (.tcx / .gpx)</button><input type='file' id='sf' accept='.tcx,.gpx,.xml' style='display:none' onchange='impSess(this)'><button class='btn b' onclick='expData()'>Exporter mes données</button><button class='btn b' onclick='$("sd").click()'>Importer mes données</button><input type='file' id='sd' accept='.json' style='display:none' onchange='impData(this)'><button class='btn' style='background:var(--cd);color:var(--t);border:1px solid var(--bd)' onclick='logout()'>Se déconnecter (${ME})</button>`);profInfo()}
 function saveProf(){CFG.dinnerTime=$('pDinner').value||'19:15';CFG.bedTime=$('pBed').value||'22:30';try{localStorage.setItem('gb27cfg',JSON.stringify(CFG))}catch(e){}PROF=Object.assign(PROF,{name:$('pn').value,sex:$('ps').value,age:+$('pa').value||30,h:+$('ph').value||178,bf:+$('pb').value||0,bmrm:+$('pm').value||0,pal:+$('pp').value,bkC:+$('pbk').value||0,ikey:$('pik').value.trim(),iid:$('pii').value.trim()||'0'});$('kg').value=+$('pk').value||72;$('ftp').value=+$('pf').value||280;try{localStorage.setItem('gb27prof',JSON.stringify(PROF))}catch(e){}save();closeSheet();render();toast('Profil enregistré ✓')}
 function pmc(P){const sel=$('day').value,ft=+$('ftp').value||280,T=k=>{const p=PLANS[k];if(!p||+p.dur==0)return 0;const w=+p.watts,i=w?w/ft:.7;return+p.dur*i*i*100};
