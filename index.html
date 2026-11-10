@@ -202,7 +202,7 @@ const WT={bk:[4,3,3],lunch:[3,3,3],souper:[3,3,3],sn:[1.5,1.2,1],pre:[1.3,.5,.25
 const TK={bk:"bk",lunch:"meal",souper:"meal",sn:"sn",pre:"pre",rec:"rec",ev:"ev",light:"pre",bkrec:"bk"};
 const COL={bk:"c-t",lunch:"c-t",souper:"c-r",sn:"c-o",pre:"c-o",rec:"c-r",ev:"c-p",light:"c-o",bkrec:"c-t"};
 const WHY={bk:"Glucides complexes + protéines, fibres modérées pour bien démarrer.",lunch:"Assiette équilibrée : féculents, protéines maigres, légumes.",souper:"Repas de récupération : recharge du glycogène et réparation musculaire.",sn:"Collation plus légère que les repas principaux : maintient l’énergie sans surcharge digestive.",pre:"Peu de fibres et de lipides pour une digestion rapide avant l’effort.",rec:"Fenêtre de récupération : glucides + 20–40 g de protéines rapidement après la sortie.",ev:"Protéines à digestion lente pour la nuit, glucides modérés.",light:"Léger car le départ est proche : le reste du repas est reporté après la sortie.",bkrec:"Déjeuner reporté après la sortie : c’est ton vrai repas de récupération."};
-const TIPS={normal:"Mode normal : le carburant suit le travail à fournir (≈1,8 g/kg de protéines, glucides selon la charge).",affutage:"Affûtage = perte de poids : ≈ −400 kcal/jour sous ta dépense, protéines à 2,1 g/kg, glucides gardés autour de la séance.",performance:"Performance : +2 g/kg de glucides et +10 g/h en sortie pour viser l’intensité maximale.",masse:"Prise de masse : ≈ +350 kcal/jour au-dessus de ta dépense, protéines à 2,0 g/kg en 4–5 prises, glucides élevés autour de la séance."};
+const TIPS={normal:"Mode normal : apports adaptés à la charge du jour, sans déficit volontaire. Les glucides suivent le volume d’entraînement.",affutage:"Affûtage : déficit planifié modéré (≈ 400 kcal), protéines renforcées et glucides préservés autour des séances. À individualiser.",performance:"Performance : priorité à la disponibilité énergétique et au ravitaillement adapté à chaque séance. Pas de surplus glucidique automatique.",masse:"Prise de masse : surplus planifié (≈ 350 kcal), protéines suffisantes réparties sur la journée et glucides adaptés à la charge."};
 let MODE="normal",PLAN=null,LOGS={},CFG={},PLANS={},SESSIONS={},ACTIVE_SESSION_ID=null,REC={},CM=new Date(),MEAL_PREFS={},MEAL_VARIANT=0,MEAL_VARIANTS={},CUSTOM_MEALS={},PROF={sex:'m',age:30,h:178,bf:0,pal:1.3,bmrm:0,name:'',ikey:'',iid:'0',bkC:0};
 try{CUSTOM_MEALS=JSON.parse(localStorage.getItem("gb27custommeals")||"{}");MEAL_PREFS=JSON.parse(localStorage.getItem("gb27mealprefs")||"{}");MEAL_VARIANTS=JSON.parse(localStorage.getItem("gb27mealvariants")||"{}");LOGS=JSON.parse(localStorage.getItem("gb27logs")||"{}");CFG=JSON.parse(localStorage.getItem("gb27cfg")||"{}");PLANS=JSON.parse(localStorage.getItem("gb27plans")||"{}");SESSIONS=JSON.parse(localStorage.getItem("gb27sessions")||"{}");REC=JSON.parse(localStorage.getItem("gb27rec")||"{}");PROF=Object.assign(PROF,JSON.parse(localStorage.getItem("gb27prof")||"{}"))}catch(e){}
 const food=(id,g)=>{const f=F[id];return{c:f[1]*g/100,p:f[2]*g/100,f:f[3]*g/100}};
@@ -251,33 +251,46 @@ function mealTemplatesFor(e,gd,index){
  return choices;
 }
 
-// Evidence-informed daily macro allocation. Carb floors follow sports-nutrition
-// ranges by endurance-training volume; intra-session carbs are included in the
-// daily carbohydrate total exactly once. Fat is planned at 25% of energy.
+// Cibles quotidiennes periodisées : les glucides restent dans une plage liée
+// au volume d’endurance. L’énergie estimée peut faire monter la cible dans cette
+// plage, mais ne peut jamais forcer une quantité illimitée de glucides.
+// Les glucides intra-séance sont inclus une seule fois dans le total journalier.
 function evidenceMacroTargets(kg,energy,intra,mode,enduranceHours,strengthHours,cKg){
- const aff=mode==='affutage',mass=mode==='masse';
- const proteinKg=aff?2.1:2.0;
- let carbFloorKg;
- if(enduranceHours<=0) carbFloorKg=strengthHours>0?3.5:3.5;
- else if(enduranceHours<1) carbFloorKg=4.5;
- else if(enduranceHours<=2) carbFloorKg=5.5;
- else if(enduranceHours<=3) carbFloorKg=7.0;
- else if(enduranceHours<=4) carbFloorKg=8.0;
- else carbFloorKg=9.0;
- // Retain the app's workload/race-load estimate when it is higher than the floor.
- // cKg represents the TOTAL daily carbohydrate target, including intra-session fuel.
- // Do not add intra/kg again here: intra is subtracted from mealCarbs below.
- const dailyCarbFloorKg=Math.max(carbFloorKg,Math.min(12,Number(cKg)||carbFloorKg));
- const protein=Math.round(proteinKg*kg),def=aff?400:mass?-350:0;
- // Ensure protein + minimum daily carbohydrate can fit while retaining 25% energy from fat.
- const targetKcal=Math.max(0,Number(energy)||0)-def;
- const kcal=Math.max(targetKcal,(4*(protein+dailyCarbFloorKg*kg))/0.75);
- const fat=Math.max(0,Math.round(kcal*0.25/9));
- const totalCarbs=Math.max(0,Math.round((kcal-4*protein-9*fat)/4));
- const mealCarbs=Math.max(0,totalCarbs-Math.max(0,Number(intra)||0));
- return {protein,carbs:mealCarbs,fat,kcal,totalCarbs,def,proteinKg,carbKg:totalCarbs/kg};
+ const bodyMass=Math.max(35,Math.min(200,Number(kg)||70));
+ const endurance=Math.max(0,Number(enduranceHours)||0);
+ const strength=Math.max(0,Number(strengthHours)||0);
+ const energyGoal=Math.max(0,(Number(energy)||0)-(mode==='affutage'?400:mode==='masse'?-350:0));
+ const fuelIntra=Math.max(0,Number(intra)||0);
+ const proteinKg=mode==='affutage'?2.0:(mode==='masse'?1.8:(strength>0?1.8:mode==='performance'?1.7:1.6));
+ const protein=Math.round(proteinKg*bodyMass);
+ let minCarbKg,maxCarbKg;
+ if(endurance<=0){
+  if(strength>0){minCarbKg=3.5;maxCarbKg=5.0;}
+  else{minCarbKg=3.0;maxCarbKg=4.0;}
+ }else if(endurance<=1){minCarbKg=4.0;maxCarbKg=5.5;}
+ else if(endurance<=2){minCarbKg=5.0;maxCarbKg=strength>0?7.5:7.0;}
+ else if(endurance<=3){minCarbKg=6.0;maxCarbKg=strength>0?8.5:8.0;}
+ else if(endurance<=4){minCarbKg=7.0;maxCarbKg=9.5;}
+ else{minCarbKg=8.0;maxCarbKg=12.0;}
+ let workloadCarbKg=Number(cKg);
+ if(!Number.isFinite(workloadCarbKg)||workloadCarbKg<=0)workloadCarbKg=minCarbKg;
+ workloadCarbKg=Math.max(minCarbKg,Math.min(maxCarbKg,workloadCarbKg));
+ if(mode==='affutage')workloadCarbKg=Math.max(minCarbKg,workloadCarbKg-0.2);
+ if(mode==='masse')workloadCarbKg=Math.min(maxCarbKg,workloadCarbKg+0.2);
+ // On vise d’abord une répartition proche de 25 % d’énergie provenant des lipides,
+ // mais seulement si le niveau de glucides reste dans la plage liée à la charge.
+ const carbNeededForEnergy=energyGoal>0?((energyGoal*0.75)-(4*protein))/(4*bodyMass):0;
+ const chosenCarbKg=Math.max(workloadCarbKg,Math.min(maxCarbKg,Math.max(minCarbKg,carbNeededForEnergy)));
+ const totalCarbs=Math.max(fuelIntra,Math.round(chosenCarbKg*bodyMass));
+ const mealCarbs=Math.max(0,totalCarbs-fuelIntra);
+ const balanceFat=(energyGoal-4*(totalCarbs+protein))/9;
+ const minFat=Math.max(0.7*bodyMass,energyGoal*0.20/9);
+ const maxFat=Math.max(minFat,energyGoal*0.35/9);
+ const fat=Math.max(0,Math.round(Math.min(maxFat,Math.max(minFat,balanceFat))));
+ const macroKcal=Math.round(4*totalCarbs+4*protein+9*fat);
+ const energyGap=Math.round(energyGoal-macroKcal);
+ return{protein,carbs:mealCarbs,fat,kcal:macroKcal,totalCarbs,def:mode==='affutage'?400:mode==='masse'?-350:0,proteinKg,carbKg:totalCarbs/bodyMass,minCarbKg,maxCarbKg,energyGoal,energyGap,fatKg:fat/bodyMass};
 }
-
 function gen(gd){gd=gd||$('day').value;
  const kg=+$("kg").value||70,W=tm($("wake").value),dur=Math.max(0,+$("dur").value||0),sport=$("sport").value||"bike",rest=dur==0,R=rest?1380:tm($("ride").value),watts=sport==="bike"?(+$("watts").value||0):0,
  sp=[$("s1").value,$("s2").value].filter(x=>x!="none"),hasQ=sp.some(x=>["vo2","tempo","sprint"].includes(x)),muscu=sport==="strength",
@@ -336,11 +349,12 @@ function gen(gd){gd=gd||$('day').value;
  // Repas personnalisés ajoutés via le bouton + : conservés par date.
  const custom=(CUSTOM_MEALS[gd]||[]).map(x=>Object.assign({},x,{opts:[],custom:true}));
  ev.push(...custom);ev.sort((a,b)=>a.t-b.t);
- const kc=Math.round((ev.reduce((n,e)=>n+(Number(e.kcal)||0),0)+intraC*4)/10)*10;
+ const mealMacros=ev.reduce((a,e)=>({c:a.c+(Number(e.c)||0),p:a.p+(Number(e.p)||0),f:a.f+(Number(e.f)||0)}),{c:0,p:0,f:0});
+ const kc=Math.round(4*(mealMacros.c+intraC)+4*mealMacros.p+9*mealMacros.f);
  const sessionStart=$('ride').value||'09:30';
  const sessionFuel=dur>0&&sport!=='strength'?[{id:'primary',sport,dur,rate,total:intraC,start:sessionStart}]:[];
  const sessions=dur>0?[{id:'primary',sport,start:sessionStart,dur,netKcal:Math.max(0,EEFinal-NE)}]:[];
- return{ev,R,E,dur,rate,intraC,sessionFuel,sessions,kg,EE:EEFinal,BMR,NE,rest,rcx,def,TSS:Math.round(TSS),tgt:{kcal:kc,c:offC+intraC,p:Math.round(Pt),f:Math.round(Ft)},hasQ,watts,sport};
+ return{ev,R,E,dur,rate,intraC,sessionFuel,sessions,kg,EE:EEFinal,BMR,NE,rest,rcx,def,TSS:Math.round(TSS),energyMacroGap:macro.energyGap,macroCarbKg:macro.carbKg,tgt:{kcal:kc,c:mealMacros.c+intraC,p:mealMacros.p,f:mealMacros.f},hasQ,watts,sport};
 }
 function intraInfo(P){
  const hot=$("hot").checked,cold=$("cold").checked&&!hot,kg=P.kg;
@@ -455,7 +469,8 @@ function applyMultiSessionEnergy(P,dayKey){
  distribute('c',carbs);distribute('p',protein);distribute('f',fat);
  P.ev.forEach((e,i)=>{e.kcal=Math.round(e.c*4+e.p*4+e.f*9);e.opts=mealTemplatesFor(e,dayKey,i).map(t=>build(t,{c:e.c,p:e.p,f:e.f},e.bet));});
  P.intraC=totalIntra;P.rate=active.length?Math.round(totalIntra/Math.max(.01,active.reduce((a,c)=>a+(Number(c.dur)||0),0))):0;P.sessionFuel=sessionFuel;P.sessions=activeEntries.map((entry,i)=>({id:entry.id,sport:entry.cfg.sport||'bike',start:entry.cfg.ride||'09:30',dur:Number(entry.cfg.dur)||0,netKcal:workoutKcal(entry.cfg)}));
- P.tgt={kcal:Math.round(P.ev.reduce((a,e)=>a+e.kcal,0)+totalIntra*4),c:carbs+totalIntra,p:protein,f:fat};
+ const mealTotals=P.ev.reduce((a,e)=>({c:a.c+(Number(e.c)||0),p:a.p+(Number(e.p)||0),f:a.f+(Number(e.f)||0)}),{c:0,p:0,f:0});
+ P.tgt={kcal:Math.round(4*(mealTotals.c+totalIntra)+4*mealTotals.p+9*mealTotals.f),c:mealTotals.c+totalIntra,p:mealTotals.p,f:mealTotals.f}; P.energyMacroGap=macro.energyGap;P.macroCarbKg=macro.carbKg;
  P.sessionCount=sessions.length;
  return P;
 }
@@ -599,7 +614,7 @@ function openProf(){const p=PROF;openSheet(`<div class='mh'><div class='mt'>⚙�
 <div class='hd'>Méthode scientifique & limites</div>
 <div class='ex'>Les calories affichées sont des estimations, pas une mesure directe. La dépense cycliste estimée à partir des watts est généralement plus individualisée que la seule durée, mais elle dépend du rendement individuel; le métabolisme de repos et l’activité hors vélo restent des sources d’incertitude. Ajuste les estimations à partir des tendances de poids, de la charge réelle et des données de puissance, idéalement avec un diététiste du sport.</div>
 <div class='ex'><a href='https://pubmed.ncbi.nlm.nih.gov/36404133/' target='_blank' rel='noopener' style='color:var(--cy)'>Étude : dépense énergétique des cyclistes professionnels validée par eau doublement marquée (2022)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/41911915/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue UCI : besoins énergétiques et disponibilité énergétique en cyclisme (2026)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/41911900/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue UCI : nutrition de course sur route (2026)</a></div>
-<div class='sb'>La logique des repas et les cibles nutritionnelles existantes ont été conservées dans cette révision : je ne les ai pas recalibrées sans données individuelles validées.</div>
+<div class='sb'>Les glucides sont ajustés selon la durée d’endurance et plafonnés dans une plage cohérente avec la charge. Les apports intra-séance sont inclus une seule fois. Les calories dépensées restent des estimations : si elles ne concordent pas avec les plages de macros, l’app signale l’écart au lieu de gonfler automatiquement les glucides.</div>
 <button class='btn' onclick='saveProf()'>Enregistrer</button><div class='hd'>Données & séances</div><button class='btn b' onclick='$("sf").click()'>Importer une séance (.tcx / .gpx)</button><input type='file' id='sf' accept='.tcx,.gpx,.xml' style='display:none' onchange='impSess(this)'><button class='btn b' onclick='expData()'>Exporter mes données</button><button class='btn b' onclick='$("sd").click()'>Importer mes données</button><input type='file' id='sd' accept='.json' style='display:none' onchange='impData(this)'><button class='btn' style='background:var(--cd);color:var(--t);border:1px solid var(--bd)' onclick='logout()'>Se déconnecter (${ME})</button>`);profInfo()}
 function saveProf(){CFG.dinnerTime=$('pDinner').value||'19:15';CFG.bedTime=$('pBed').value||'22:30';try{localStorage.setItem('gb27cfg',JSON.stringify(CFG))}catch(e){}PROF=Object.assign(PROF,{name:$('pn').value,sex:$('ps').value,age:+$('pa').value||30,h:+$('ph').value||178,bf:+$('pb').value||0,bmrm:+$('pm').value||0,pal:+$('pp').value,bkC:+$('pbk').value||0,ikey:$('pik').value.trim(),iid:$('pii').value.trim()||'0'});$('kg').value=+$('pk').value||72;$('ftp').value=+$('pf').value||280;try{localStorage.setItem('gb27prof',JSON.stringify(PROF))}catch(e){}save();closeSheet();render();toast('Profil enregistré ✓')}
 function pmc(P){const sel=$('day').value,ft=+$('ftp').value||280,T=k=>{const p=PLANS[k];if(!p||+p.dur==0)return 0;const w=+p.watts,i=w?w/ft:.7;return+p.dur*i*i*100};
@@ -609,6 +624,7 @@ function pmc(P){const sel=$('day').value,ft=+$('ftp').value||280,T=k=>{const p=P
  const st=z.s>15?'Très frais':z.s>5?'Frais':z.s>-10?'Neutre':z.s>-30?'Charge productive':'Surcharge';
  $('pmc').innerHTML=`<div class='dt'><span>📈 Forme · Fatigue</span><span style='color:var(--cy)'>${st}</span></div><svg viewBox='0 0 320 130' style='width:100%;background:var(--bg);border-radius:14px'>${ln('c','#3b82f6')}${ln('a','#ec4899')}<line x1='${X(0)}' x2='${X(0)}' y1='5' y2='125' stroke='#10b981'/></svg><div class='mg' style='grid-template-columns:1fr 1fr 1fr;margin-top:.6rem'><div class='mp'><div class='mv' style='color:#3b82f6'>${Math.round(z.c)}</div><div class='ml'>CTL forme</div></div><div class='mp'><div class='mv' style='color:#ec4899'>${Math.round(z.a)}</div><div class='ml'>ATL fatigue</div></div><div class='mp'><div class='mv'>${sg(z.s)}</div><div class='ml'>TSB</div></div></div><div class='ex'>Calculé depuis tes séances planifiées (TSS = durée × IF² × 100).</div>`;
  const tips=[],ffm=P.kg*(PROF.bf?1-PROF.bf/100:.85),ea=(P.tgt.kcal-(P.EE-P.NE))/ffm,tm1=o.find(x=>x.i==1).t;
+ if(Math.abs(Number(P.energyMacroGap)||0)>150){const gap=Math.abs(Math.round(P.energyMacroGap));tips.push(P.energyMacroGap>0?`⚠️ Écart énergétique estimé : les macros proposées restent environ ${gap} kcal sous la dépense calculée, car la cible de glucides est plafonnée selon la charge. Vérifie le facteur d’activité, le profil et les calories des séances au lieu d’augmenter les glucides automatiquement.`:`ℹ️ Les minima de carburant liés à la charge dépassent d’environ ${gap} kcal l’objectif énergétique du mode choisi. Évite de réduire davantage les glucides sans avis professionnel.`)}
  if(z.s<-30)tips.push('⚠️ Fatigue élevée (TSB '+sg(z.s)+') : sommeil, glucides élevés et séance légère.');else if(z.s>15)tips.push('Tu es très frais : bon moment pour une séance clé.');
  if(tm1>=100)tips.push(`Demain séance dure (TSS ≈ ${Math.round(tm1)}) : vise 8–10 g/kg de glucides sur les 24 h avant.`);
  if(ea<30)tips.push(`⚠️ Disponibilité énergétique ≈ ${Math.round(ea)} kcal/kg de masse maigre (seuil bas : 30).`);
@@ -735,25 +751,69 @@ async function syncIv(q){if($('pik')){PROF.ikey=$('pik').value.trim();PROF.iid=$
  const hd={Authorization:'Basic '+btoa('API_KEY:'+PROF.ikey)},b='https://intervals.icu/api/v1/athlete/'+(PROF.iid||0),t=iso(new Date()),g=u=>fetch(b+u,{headers:hd}).then(r=>{if(!r.ok)throw 0;return r.json()});
  try{const[A,E,Wl]=await Promise.all([g('/activities?oldest='+addD(t,-21)+'&newest='+t),g('/events?category=WORKOUT&oldest='+t+'&newest='+addD(t,28)),g('/wellness?oldest='+addD(t,-7)+'&newest='+t)]);
   const ftp=+$('ftp').value||280;let n=0;
+  const normSport=v=>{v=String(v||'').toLowerCase();return /run|course/.test(v)?'run':/strength|weight|muscu/.test(v)?'strength':/swim|natation|pool/.test(v)?'swim':/ski|nordic/.test(v)?'ski':'bike'};
+  const mins=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})(?::.*)?$/);return m?Number(m[1])*60+Number(m[2]):null};
+  const timeGap=(a,b)=>{const x=mins(a),y=mins(b);return x===null||y===null?null:Math.abs(x-y)};
+  // Match a completed activity to a planned workout on the same local date.
+  // Duration is deliberately NOT a hard condition: the athlete may finish
+  // earlier/later than planned. With multiple same-sport sessions, use start
+  // time and refuse ambiguous matches rather than replacing the wrong workout.
+  const findPlannedMatch=(list,cfg)=>{
+   const candidates=list.filter(z=>z&&z.cfg&&z.planned!==false&&normSport(z.cfg.sport)===normSport(cfg.sport));
+   if(!candidates.length)return null;
+   if(candidates.length===1)return candidates[0];
+   const ranked=candidates.map(z=>({z,g:timeGap(z.cfg.ride,cfg.ride)})).filter(x=>x.g!==null&&x.g<=480).sort((a,b)=>a.g-b.g);
+   if(!ranked.length)return null;
+   if(ranked.length>1&&ranked[1].g-ranked[0].g<30)return null; // ambiguous: do not overwrite another session
+   return ranked[0].z;
+  };
+  const findActualMatch=(list,cfg)=>{
+   const candidates=list.filter(z=>z&&z.cfg&&z.source==='intervals'&&z.planned===false&&normSport(z.cfg.sport)===normSport(cfg.sport));
+   const ranked=candidates.map(z=>({z,g:timeGap(z.cfg.ride,cfg.ride)})).filter(x=>x.g!==null&&x.g<=480).sort((a,b)=>a.g-b.g);
+   return ranked.length?ranked[0].z:null;
+  };
   const put=(sec,watts,st,sport,pace,calories,sourceId,isPlanned=false)=>{
    if(!st||!sec)return;const k=String(st).slice(0,10),rawStart=String(st).slice(11,16),start=/^\d{2}:\d{2}$/.test(rawStart)?rawStart:'09:00',h=Number(sec)/3600;if(!Number.isFinite(h)||h<=0)return;
-   // Normalise l'heure et la durée importées : jamais de secondes/fractions dans l'affichage.
-   const cleanStart=String(start).match(/^(\d{2}):(\d{2})$/)?String(start):'09:00';
+   const cleanStart=String(start).match(/^\d{2}:\d{2}$/)?String(start):'09:00';
    const roundedHours=Math.round(h*20)/20;
    const cfg=Object.assign({},DEF,{dur:String(roundedHours),ride:cleanStart,sport:sport||'bike',watts:String(Math.round(Number(watts)||0)),...(pace?{pace:String(pace)}:{}),...(calories>0?{eeOverride:Math.round(Number(calories))}:{})});
-   const list=sessionList(k);let item=list.find(z=>z.sourceId&&String(z.sourceId)===String(sourceId));
-   if(!item&&!isPlanned){
-    const mins=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})(?::.*)?$/);return m?Number(m[1])*60+Number(m[2]):null};
-    const actualMin=mins(cleanStart);
-    const normSport=v=>{v=String(v||'').toLowerCase();return /run|course/.test(v)?'run':/strength|weight|muscu/.test(v)?'strength':/swim|natation/.test(v)?'swim':/ski|nordic/.test(v)?'ski':'bike'};
-    // Une activité réalisée remplace une séance manuelle similaire : même sport,
-    // durée proche (±30 min) et horaire raisonnablement proche (jusqu'à 6 h).
-    item=list.find(z=>z&&z.cfg&&z.source!=='intervals'&&z.planned!==false&&normSport(z.cfg.sport)===normSport(cfg.sport)&&Math.abs((Number(z.cfg.dur)||0)-roundedHours)<=0.5&&actualMin!==null&&mins(z.cfg.ride)!==null&&Math.abs(mins(z.cfg.ride)-actualMin)<=360);
-    if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sourceId;item.planned=false;item.id=item.id||'iv_'+String(sourceId||k+'_'+cleanStart).replace(/[^a-zA-Z0-9_-]/g,'_');}
+   const list=sessionList(k),sid=String(sourceId||'');
+   // Stable source ID makes repeated syncs idempotent.
+   let item=list.find(z=>z&&z.source==='intervals'&&z.sourceId&&String(z.sourceId)===sid);
+   if(isPlanned){
+    // If Intervals.icu still exposes a completed activity and its old planned
+    // event, keep the completed activity as the single source of truth.
+    const completed=findActualMatch(list,cfg);
+    if(completed){n++;return;}
+    if(!item){
+     item=list.find(z=>z&&z.source==='intervals'&&z.planned===true&&z.cfg&&normSport(z.cfg.sport)===normSport(cfg.sport)&&timeGap(z.cfg.ride,cfg.ride)!==null&&timeGap(z.cfg.ride,cfg.ride)<=30);
+    }
+    if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sid;item.planned=true;}
+    else list.push({id:'iv_'+String(sid||k+'_'+cleanStart).replace(/[^a-zA-Z0-9_-]/g,'_'),cfg,source:'intervals',sourceId:sid,planned:true});
+   }else{
+    if(item&&item.planned===false){
+     // Clean up a duplicate manual/planned entry left by an older sync version.
+     // Keep the already-imported activity and remove only its confidently
+     // matched planned counterpart.
+     const stalePlan=findPlannedMatch(list,cfg);
+     if(stalePlan&&stalePlan!==item){const ix=list.indexOf(stalePlan);if(ix>=0)list.splice(ix,1);}
+    }else if(!item){
+     // Completed activity replaces its matching manual OR Intervals-planned
+     // session. A same-day unique sport match is accepted even if duration or
+     // start differs; multiple same-sport sessions require a clear time match.
+     item=findPlannedMatch(list,cfg);
+    }
+    if(item){
+     item.cfg=cfg;item.source='intervals';item.sourceId=sid;item.planned=false;
+     item.replacedPlanned=true;
+    }else{
+     // Refresh an already imported activity with a nearby start if its source
+     // ID changed, but never merge two distinct same-sport workouts blindly.
+     const existing=findActualMatch(list,cfg);
+     if(existing){existing.cfg=cfg;existing.sourceId=sid;existing.planned=false;item=existing;}
+     else list.push({id:'iv_'+String(sid||k+'_'+cleanStart).replace(/[^a-zA-Z0-9_-]/g,'_'),cfg,source:'intervals',sourceId:sid,planned:false});
+    }
    }
-   if(!item)item=list.find(z=>z.source==='intervals'&&z.cfg&&z.cfg.ride===start&&z.cfg.sport===cfg.sport&&!!z.planned===!!isPlanned);
-   if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sourceId;item.planned=!!isPlanned;}
-   else list.push({id:'iv_'+String(sourceId||k+'_'+start).replace(/[^a-zA-Z0-9_-]/g,'_'),cfg,source:'intervals',sourceId:sourceId||'',planned:!!isPlanned});
    SESSIONS[k]=list;localStorage.setItem('gb27sessions',JSON.stringify(SESSIONS));
    if(!PLANS[k]||!Number(PLANS[k].dur))PLANS[k]=Object.assign({},cfg);
    n++;
