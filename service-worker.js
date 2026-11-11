@@ -1,6 +1,6 @@
 /* PERFMASTER — service worker de mise à jour et cache sécurisé */
 const CACHE_PREFIX = 'perfmaster-cache-';
-const CACHE_VERSION = '2026-11-10-v1';
+const CACHE_VERSION = '2026-11-11-v2';
 const CURRENT_CACHE = CACHE_PREFIX + CACHE_VERSION;
 
 self.addEventListener('install', (event) => {

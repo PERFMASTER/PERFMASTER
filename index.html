@@ -157,6 +157,26 @@ input,select,textarea{max-width:100%;min-width:0}
 <script>
 let U='';const _g=Storage.prototype.getItem,_s=Storage.prototype.setItem,PX=k=>/^gb27(?!acc|sess|cur)/.test(k)?U+k:k;Storage.prototype.getItem=function(k){return _g.call(this,PX(k))};Storage.prototype.setItem=function(k,v){return _s.call(this,PX(k),v)};
 const AC=()=>{try{return JSON.parse(localStorage.getItem('gb27acc')||'{}')}catch(e){return{}}};let ME='';try{ME=sessionStorage.getItem('gb27cur')||localStorage.getItem('gb27sess')||''}catch(e){}if(ME&&AC()[ME])U='u_'+ME+'_';else ME='';
+
+/* Auto-réparation : valide les données locales avant l'init (évite l'écran vide) */
+(function(){const S=localStorage,ob=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
+const spec={gb27logs:'o',gb27cfg:'o',gb27plans:'o',gb27rec:'o',gb27prof:'o',gb27sessions:'o',gb27mealprefs:'o',gb27custommeals:'o',gb27mealvariants:'o',gb27deletedMeals:'o',gb27well:'o',gb27races:'a',gb27foods:'a'};
+const bak=(k,raw)=>{try{_s.call(S,'bak_'+U+k,raw)}catch(e){}};
+for(const k in spec){let raw=null;try{raw=S.getItem(k);if(raw==null)continue;let v=JSON.parse(raw);
+if(spec[k]==='a'?!Array.isArray(v):!ob(v))throw 0;
+let ch=0;
+if(k==='gb27logs'||k==='gb27sessions'||k==='gb27custommeals'){for(const d in v){if(!Array.isArray(v[d])){delete v[d];ch=1;continue}const f=v[d].filter(x=>ob(x)&&(k!=='gb27sessions'||ob(x.cfg)));if(f.length!==v[d].length){v[d]=f;ch=1}}}
+else if(k==='gb27plans'){for(const d in v)if(!ob(v[d])){delete v[d];ch=1}}
+else if(k==='gb27races'){const f=v.filter(r=>ob(r)&&typeof r.d==='string'&&typeof r.n==='string');if(f.length!==v.length){v=f;ch=1}}
+else if(k==='gb27foods'){const f=v.filter(x=>ob(x)&&typeof x.n==='string');if(f.length!==v.length){v=f;ch=1}}
+if(ch){bak(k,raw);S.setItem(k,JSON.stringify(v))}}catch(e){if(raw!=null){bak(k,raw);try{S.removeItem(U+k)}catch(x){}}}}
+window.addEventListener('error',function(){if(window.__ok||document.getElementById('rescue'))return;
+const d=document.createElement('div');d.id='rescue';d.style.cssText='position:fixed;inset:0;z-index:99999;background:#0a0e17;color:#f3f4f6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;font-family:sans-serif';
+d.innerHTML='<div style="font-size:1.2rem;font-weight:800">PERFMASTER n’a pas pu démarrer</div><div style="font-size:.85rem;color:#9ca3af;max-width:320px">Des données locales sont probablement corrompues. Sauvegarde puis répare : tes comptes sont conservés.</div><button id="rb1" style="padding:12px 18px;border-radius:12px;border:0;background:#3b82f6;color:#fff;font-weight:700">1. Télécharger une sauvegarde</button><button id="rb2" style="padding:12px 18px;border-radius:12px;border:0;background:#10b981;color:#fff;font-weight:700">2. Réparer et relancer</button>';
+document.body.appendChild(d);
+document.getElementById('rb1').onclick=()=>{const o={};for(let i=0;i<S.length;i++){const k=S.key(i);o[k]=_g.call(S,k)}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:'application/json'}));a.download='perfmaster-sauvegarde.json';a.click()};
+document.getElementById('rb2').onclick=()=>{const del=[];for(let i=0;i<S.length;i++){const k=S.key(i);if(/gb27/.test(k)&&!/gb27(acc|sess|cur)/.test(k)&&!/^bak_/.test(k))del.push(k)}del.forEach(k=>S.removeItem(k));location.reload()}});
+})();
 const $=i=>document.getElementById(i),tm=s=>{const[a,b]=s.split(":");return+a*60+ +b},fm=m=>{m=(m%1440+1440)%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")},r5=x=>Math.round(x/5)*5;
 // [nom, C, P, F pour 100 g, (poids pièce)]
 const F={avoine:["Flocons d’avoine (secs)",60,13,7],yg:["Yogourt grec 0 %",4,10,.2],banane:["Banane",23,1.1,.3],miel:["Miel",82,.3,0],bagel:["Bagel nature",53,10,1.7],oeuf:["Œuf entier",.7,13,10,55],confiture:["Confiture",60,.4,0],jus:["Jus d’orange",10,.7,.2],riz:["Riz cuit",28,2.7,.3],poulet:["Poulet cuit",0,31,3.6],huile:["Huile d’olive",0,0,100],pates:["Pâtes cuites",31,5.8,.9],saumon:["Saumon cuit",0,25,12],legumes:["Légumes cuits",5,2,.3],galette:["Galettes de riz",80,8,3],pain:["Pain blanc",50,9,3],dinde:["Dinde tranchée",1,22,2],whey:["Whey (poudre)",4,80,6],cottage:["Fromage cottage",3,11,4],amandes:["Amandes",22,21,50],pb:["Beurre d’arachide",20,25,50],bet:["Jus de betterave",9,1,.1],patate:["Patate douce cuite",20,1.6,.1],boeuf:["Bœuf maigre cuit",0,27,8],raisins:["Raisins secs",79,3,.5],lait:["Lait écrémé",5,3.4,.1],cereal:["Céréales (type corn flakes)",84,7,1],compote:["Compote de pommes",13,.3,.1],muesli:["Muesli",65,10,6],painraisin:["Pain aux raisins",52,7,3],skyr:["Skyr nature",4,11,.2],quinoa:["Quinoa cuit",21,4.4,1.9],tofu:["Tofu ferme",2,15,8],lentilles:["Lentilles cuites",20,9,0.4],pois_chiches:["Pois chiches cuits",27,8.9,2.6],avocat:["Avocat",9,2,15]};
@@ -872,6 +892,6 @@ $("ov").onclick=e=>{if(e.target.id=="ov")closeSheet()};
 ["kg","ftp","wake","ride","dur","watts","s1","s2","sport"].forEach(i=>{if(CFG[i])$(i).value=CFG[i]});
 ["caf","bet","hot","cold"].forEach(i=>{if(CFG[i]){$(i).checked=true;$(i).closest(".cc").classList.add("on")}});
 if(CFG.MODE){MODE=CFG.MODE==="affutage"?"pertepoids":CFG.MODE;document.querySelectorAll(".mb").forEach(b=>b.classList.toggle("on",b.dataset.m==MODE))}
-setDay(0);loadDay();render();updateSportFields();if(sessionStorage.getItem('gb27onboarding')==='1'){setTimeout(()=>mealPrefsUI(false),350)}if(PROF.ikey){syncIv(true);let ivBusy=false;setInterval(async()=>{if(ivBusy||!PROF.ikey||document.hidden)return;ivBusy=true;try{await syncIv(true)}finally{ivBusy=false}},10*60*1000)}setInterval(()=>{if(!$("ov").classList.contains("on"))render()},60000);
+setDay(0);loadDay();render();updateSportFields();if(sessionStorage.getItem('gb27onboarding')==='1'){setTimeout(()=>mealPrefsUI(false),350)}if(PROF.ikey){syncIv(true);let ivBusy=false;setInterval(async()=>{if(ivBusy||!PROF.ikey||document.hidden)return;ivBusy=true;try{await syncIv(true)}finally{ivBusy=false}},10*60*1000)}setInterval(()=>{if(!$("ov").classList.contains("on"))render()},60000);window.__ok=1;
 </script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));}</script>
 </body></html>
