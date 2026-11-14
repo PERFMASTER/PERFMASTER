@@ -158,7 +158,9 @@ input,select,textarea{max-width:100%;min-width:0}
 let U='';const _g=Storage.prototype.getItem,_s=Storage.prototype.setItem,PX=k=>/^gb27(?!acc|sess|cur)/.test(k)?U+k:k;Storage.prototype.getItem=function(k){return _g.call(this,PX(k))};Storage.prototype.setItem=function(k,v){return _s.call(this,PX(k),v)};
 // Écriture locale résiliente : ne supprime jamais les données actives. En cas de quota,
 // elle retire uniquement les anciennes copies de secours (bak_*) puis réessaie une fois.
-function persistLocal(key,value){try{return _s.call(localStorage,PX(key),String(value))}catch(err){const quota=err&&(err.name==='QuotaExceededError'||err.name==='NS_ERROR_DOM_QUOTA_REACHED'||err.code===22||err.code===1014);if(!quota)throw err;const backups=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('bak_'))backups.push(k)}backups.forEach(k=>localStorage.removeItem(k))}catch(cleanErr){}try{return _s.call(localStorage,PX(key),String(value))}catch(retryErr){retryErr.perfmasterQuota=true;throw retryErr}}}
+function persistLocal(key,value){try{return _s.call(localStorage,PX(key),String(value))}catch(err){const quota=err&&(err.name==='QuotaExceededError'||err.name==='NS_ERROR_DOM_QUOTA_REACHED'||err.code===22||err.code===1014);if(!quota)throw err;const backups=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('bak_')){const originalKey=k.slice(4);/* Ne jamais effacer une sauvegarde qui est la seule copie restante. */if(_g.call(localStorage,originalKey)!==null)backups.push(k)}}backups.forEach(k=>localStorage.removeItem(k))}catch(cleanErr){}try{return _s.call(localStorage,PX(key),String(value))}catch(retryErr){retryErr.perfmasterQuota=true;throw retryErr}}}
+const _r=Storage.prototype.removeItem;
+function persistBatch(entries){const snapshots=entries.map(([key])=>{const raw=PX(key);return{raw,value:_g.call(localStorage,raw)}});try{entries.forEach(([key,value])=>persistLocal(key,value));return true}catch(err){for(let i=snapshots.length-1;i>=0;i--){const x=snapshots[i];try{if(x.value===null)_r.call(localStorage,x.raw);else _s.call(localStorage,x.raw,x.value)}catch(rollbackError){console.error('Restauration locale incomplète',rollbackError)}}throw err}}
 const AC=()=>{try{return JSON.parse(localStorage.getItem('gb27acc')||'{}')}catch(e){return{}}};let ME='';try{ME=sessionStorage.getItem('gb27cur')||localStorage.getItem('gb27sess')||''}catch(e){}if(ME&&AC()[ME])U='u_'+ME+'_';else ME='';
 
 /* Auto-réparation : valide les données locales avant l'init (évite l'écran vide) */
@@ -402,18 +404,34 @@ function gen(gd){gd=gd||$('day').value;
  if(S+(heavy?75:90)<=1260)add(Math.max(1260,S+90),"ev","Collation du soir");
  ev.sort((a,b)=>a.t-b.t);if(rest)for(let i=ev.length;i--;)if(ev[i].type=='pre'||ev[i].type=='rec')ev.splice(i,1);
  for(let i=0;i<ev.length-1;i++){const a=ev[i],b=ev[i+1];if(R>a.t&&R<b.t||E>a.t&&E<b.t)continue;if(b.t-a.t>330){ev.splice(i+1,0,{t:r5((a.t+b.t)/2),type:"sn",label:"Collation PM"});i++}}
+ // Ajouter les repas personnalisés avant la répartition : ils reçoivent une part
+ // des objectifs journaliers au lieu de dupliquer les macros d’un autre repas.
+ const custom=(CUSTOM_MEALS[gd]||[]).map(x=>Object.assign({},x,{opts:[],custom:true,pre:x.type==='pre',rec:x.type==='rec'}));
+ ev.push(...custom);ev.sort((a,b)=>a.t-b.t);
  // macros par repas
- // Repas pré-entraînement : repère 1 à 4 g/kg selon le délai avant le départ.
- // Ex. 1 h = 1 g/kg; 2 h = 2 g/kg; 3 h = 3 g/kg; 4 h ou plus = 4 g/kg.
- const preCarbs=e=>{if(!e.pre)return 0;const hours=Math.max(0,(R-e.t)/60);return Math.max(1,Math.min(4,Math.round(hours*10)/10))*kg;};
- const fc=e=>e.type=='bk'&&!e.pre&&PROF.bkC>0?PROF.bkC:rest?0:e.pre?preCarbs(e):e.type=='rec'?(heavy?1.2:1)*kg:e.rec?1.4*kg:e.type=='bk'?(ev.some(x=>x.type=='sn'&&x.t>e.t&&x.t<e.t+330)?1.4:1.7)*kg:0;
+ // Pré-entraînement : une seule cible cumulée pour toutes les prises avant la séance.
+ // Le délai est mesuré depuis la première prise pré-séance; les portions sont réparties
+ // entre les repas au prorata du temps disponible, sans augmenter le total journalier.
+ const fixedCarbs=new Map();
+ if(PROF.bkC>0)ev.forEach(e=>{if(e.type==='bk'&&!e.pre)fixedCarbs.set(e,Number(PROF.bkC)||0)});
+ if(!rest){
+  const preEvents=ev.filter(e=>e.pre).sort((a,b)=>a.t-b.t);
+  if(preEvents.length){const hours=Math.max(1,Math.min(4,Math.round(Math.max(0,(R-preEvents[0].t)/60)*10)/10));const target=Math.min(offC,hours*kg);const weights=preEvents.map(e=>Math.max(.1,(R-e.t)/60)),ws=weights.reduce((a,b)=>a+b,0);preEvents.forEach((e,i)=>fixedCarbs.set(e,target*weights[i]/ws));}
+  const postEvent=ev.find(e=>e.type==='rec');
+  if(postEvent){const postKg=(dur>2||hasQ||IF>=.85)?1.7:1.0;fixedCarbs.set(postEvent,postKg*kg);}
+ }
+ // Si les cibles pré/post et le petit-déjeuner personnalisé dépassent le budget,
+ // elles sont réduites proportionnellement : le total quotidien ne change jamais.
+ const fixedTotal=[...fixedCarbs.values()].reduce((a,b)=>a+Math.max(0,b),0),fixedScale=fixedTotal>offC&&fixedTotal>0?offC/fixedTotal:1;
+ for(const [e,v] of fixedCarbs)fixedCarbs.set(e,Math.max(0,v*fixedScale));
+ const fc=e=>rest&&!fixedCarbs.has(e)?0:Math.max(0,Number(fixedCarbs.get(e))||0);
  const fx=ev.reduce((n,e)=>n+fc(e),0),remC=Math.max(0,offC-fx),cw=e=>WT[e.type][0],sum=[0,1,2].map(k=>ev.reduce((n,e)=>n+(k==0?(fc(e)>0?0:cw(e)):WT[e.type][k]),0));
- // Les cibles pré-séance sont prioritaires et ne sont plus réduites artificiellement.
- offC=Math.max(offC,Math.round(fx));
  let betDone=null;if($("bet").checked){const c=ev.filter(e=>e.t<=R-90);betDone=(c.length?c:ev.filter(e=>e.t<=R-45)).pop()}
- ev.forEach((e,i)=>{e.id="m"+i;const w=WT[e.type];
-  e.c=fc(e)>0?Math.round(fc(e)*k0):Math.round(remC*cw(e)/sum[0]);e.p=Math.max(Math.round(Pt*w[1]/sum[1]),e.type=='rec'||e.rec?Math.round(.3*kg):0);e.f=Math.round(Ft*w[2]/sum[2]);e.kcal=e.c*4+e.p*4+e.f*9;
-  const choices=CFG.mealSuggestions===false?[]:mealTemplatesFor(e,gd,i);e.opts=choices.map(t=>build(t,{c:e.c,p:e.p,f:e.f},e===betDone));e.bet=e===betDone});
+ ev.forEach((e,i)=>{if(!e.custom)e.id="m"+i;const w=WT[e.type];
+  e.c=fc(e)>0?Math.round(fc(e)):(sum[0]>0?Math.round(remC*cw(e)/sum[0]):0);e.p=Math.max(sum[1]>0?Math.round(Pt*w[1]/sum[1]):0,e.type=='rec'||e.rec?Math.round(.3*kg):0);e.f=sum[2]>0?Math.round(Ft*w[2]/sum[2]):0;e.kcal=e.c*4+e.p*4+e.f*9;e.bet=e===betDone});
+ const balanceMealMacro=(key,target)=>{let delta=Math.round(target)-ev.reduce((n,e)=>n+(Number(e[key])||0),0);for(let i=ev.length-1;i>=0&&delta!==0;i--){const e=ev[i];if(delta>0){e[key]=(Number(e[key])||0)+delta;delta=0}else{const cut=Math.min(Number(e[key])||0,-delta);e[key]=(Number(e[key])||0)-cut;delta+=cut}}};
+ balanceMealMacro('c',offC);balanceMealMacro('p',Pt);balanceMealMacro('f',Ft);
+ ev.forEach((e,i)=>{e.kcal=Math.round(e.c*4+e.p*4+e.f*9);const choices=e.custom||CFG.mealSuggestions===false?[]:mealTemplatesFor(e,gd,i);e.opts=choices.map(t=>build(t,{c:e.c,p:e.p,f:e.f},e===betDone));});
  // Retirer les repas supprimés et redistribuer leurs objectifs aux repas restants.
  let deletedMeals={};try{deletedMeals=JSON.parse(localStorage.getItem("gb27deletedMeals")||"{}")}catch(e){}
  const removedIds=new Set(deletedMeals[gd]||[]);
@@ -424,13 +442,13 @@ function gen(gd){gd=gd||$('day').value;
        const pool=kept.reduce((n,e)=>n+Math.max(0,e[key]||0),0),extra=removed.reduce((n,e)=>n+Math.max(0,e[key]||0),0);
        if(pool>0)kept.forEach(e=>e[key]=Math.round((e[key]+extra*(e[key]/pool))*10)/10);
      }
-     kept.forEach(e=>{e.c=Math.round(e.c);e.p=Math.round(e.p);e.f=Math.round(e.f);e.kcal=Math.round(e.c*4+e.p*4+e.f*9);e.opts=CFG.mealSuggestions===false?[]:mealTemplatesFor(e,gd,Number(String(e.id).slice(1))).map(t=>build(t,{c:e.c,p:e.p,f:e.f},e.bet));});
+     kept.forEach(e=>{e.c=Math.round(e.c);e.p=Math.round(e.p);e.f=Math.round(e.f);e.kcal=Math.round(e.c*4+e.p*4+e.f*9);e.opts=e.custom||CFG.mealSuggestions===false?[]:mealTemplatesFor(e,gd,Number(String(e.id).slice(1))).map(t=>build(t,{c:e.c,p:e.p,f:e.f},e.bet));});
    }
    ev.splice(0,ev.length,...kept);
+   // Rebalance après suppression : les totaux quotidiens restent identiques malgré les arrondis.
+   balanceMealMacro('c',offC);balanceMealMacro('p',Pt);balanceMealMacro('f',Ft);
+   ev.forEach(e=>{e.kcal=Math.round(e.c*4+e.p*4+e.f*9);e.opts=e.custom||CFG.mealSuggestions===false?[]:mealTemplatesFor(e,gd,Number(String(e.id).slice(1))).map(t=>build(t,{c:e.c,p:e.p,f:e.f},e.bet));});
  }
- // Repas personnalisés ajoutés via le bouton + : conservés par date.
- const custom=(CUSTOM_MEALS[gd]||[]).map(x=>Object.assign({},x,{opts:[],custom:true}));
- ev.push(...custom);ev.sort((a,b)=>a.t-b.t);
  const kc=Math.round((ev.reduce((n,e)=>n+(Number(e.kcal)||0),0)+intraC*4)/10)*10;
  return{ev,R,E,dur,rate,intraC,kg,EE:EEFinal,BMR,NE,rest,rcx,nutrition72h:ctx72,def,macroFeasible:balanced.feasible,TSS:Math.round(TSS),tgt:{kcal:kc,c:offC+intraC,p:Math.round(Pt),f:Math.round(Ft)},hasQ,watts,sport};
 }
@@ -487,7 +505,20 @@ function saveTrainingAndReturn(){
   }catch(err){console.error('Échec sauvegarde entraînement:',err);toast(err&&err.perfmasterQuota?'Stockage presque plein. Exportez vos données avant de libérer de l’espace.':'Impossible de sauvegarder : une erreur de stockage est survenue.');}
 }
 
-function save(){const cfg=getCfg(),dk=$("day").value;if(!dk)throw new Error('Jour manquant');PLANS[dk]=cfg;if(ACTIVE_SESSION_ID){SESSIONS[dk]=(SESSIONS[dk]||[]).map(x=>x.id===ACTIVE_SESSION_ID?Object.assign({},x,{cfg:cfg}):x);persistLocal("gb27sessions",JSON.stringify(SESSIONS));}persistLocal("gb27plans",JSON.stringify(PLANS));const c=Object.assign({},CFG,{MODE});["kg","ftp","wake","ride","dur","watts","pace","s1","s2","sport","strengthIntensity","intraCeiling"].forEach(i=>{if($(i))c[i]=$(i).value});c.dinnerTime=CFG.dinnerTime||"19:15";c.bedTime=CFG.bedTime||"22:30";["caf","bet","hot","cold"].forEach(i=>{if($(i))c[i]=$(i).checked});persistLocal("gb27cfg",JSON.stringify(c));}
+function save(){
+ const cfg=getCfg(),dk=$("day").value;if(!dk)throw new Error('Jour manquant');
+ PLANS[dk]=cfg;const writes=[];
+ if(ACTIVE_SESSION_ID){
+  const list=Array.isArray(SESSIONS[dk])?SESSIONS[dk]:[];
+  const index=list.findIndex(x=>String(x.id)===String(ACTIVE_SESSION_ID));
+  if(index>=0)list[index]=Object.assign({},list[index],{cfg:Object.assign({},cfg)});
+  else list.push({id:ACTIVE_SESSION_ID,cfg:Object.assign({},cfg),planned:true,source:'manual'});
+  SESSIONS[dk]=list;writes.push(["gb27sessions",JSON.stringify(SESSIONS)]);
+ }
+ const c=Object.assign({},CFG,{MODE});["kg","ftp","wake","ride","dur","watts","pace","s1","s2","sport","strengthIntensity","intraCeiling"].forEach(i=>{if($(i))c[i]=$(i).value});
+ c.dinnerTime=CFG.dinnerTime||"19:15";c.bedTime=CFG.bedTime||"22:30";["caf","bet","hot","cold"].forEach(i=>{if($(i))c[i]=$(i).checked});
+ writes.push(["gb27plans",JSON.stringify(PLANS)],["gb27cfg",JSON.stringify(c)]);persistBatch(writes);
+}
 function toast(m){const t=$("ts");t.textContent=m;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),1800)}
 function count(el,v,suf){const a=parseFloat(el.dataset.v||0),t0=performance.now();el.dataset.v=v;(function s(n){const k=Math.min(1,(n-t0)/500);el.textContent=Math.round(a+(v-a)*k)+suf;if(k<1)requestAnimationFrame(s)})(t0)}
 function applyMultiSessionEnergy(P,dayKey){
@@ -529,7 +560,7 @@ function applyMultiSessionEnergy(P,dayKey){
  let totalTSS=0,totalIntra=0,qualityBonus=0;const sessionFuel=[];
  for(let si=0;si<activeEntries.length;si++){const entry=activeEntries[si],c=entry.cfg;
   const dur=Math.max(0,Number(c.dur)||0),sport=c.sport||'bike';
-  if(sport==='strength'){hasStrength=true;sessionFuel.push({id:entry.id,sport,dur:Number(c.dur)||0,rate:0,total:0,start:c.ride||'09:30'});continue;}
+  if(sport==='strength'){sessionFuel.push({id:entry.id,sport,dur:Number(c.dur)||0,rate:0,total:0,start:c.ride||'09:30'});continue;}
   let intensity= sport==='bike'?(Number(c.watts)>0?Number(c.watts)/ftp:.7):sport==='swim'?({easy:.55,moderate:.7,hard:.9}[c.enduranceIntensity||'moderate']||.7):sport==='ski'?({easy:.55,moderate:.75,hard:.95}[c.enduranceIntensity||'moderate']||.75):.75;
   const tss=dur*intensity*intensity*100;totalTSS+=tss;
   const hard=intensity>=.85||/vo2|tempo|sprint/i.test((c.s1||'')+' '+(c.s2||''));
@@ -652,14 +683,15 @@ function openRide(){const P=PLAN,I=intraInfo(P);if(P.sport==="strength"||P.rate<
  <div class="sb">💧 Liquides : <b>${I.fl}</b><br>🧂 Sodium : <b>${I.na}</b><br>Évitez de boire au point de prendre du poids pendant la séance. Mesurez vos pertes par pesée avant/après pour personnaliser ces repères. ${I.hot?"(chaleur : réévalue les pertes de sueur)":I.cold?"(froid : la soif peut diminuer)":"(ajuste selon tes pertes réelles)"}</div>
  ${I.caf?`<div class="sb">${I.caf}</div>`:""}
  <button class="btn" onclick="logRide()">✅ Enregistrer le fuel intra</button>${logsHtml("ride")}`)}
-function push(m,n,c,p,f,kind){const logs=dayLogs();logs.push({id:Date.now()+""+Math.random().toString(36).slice(2,5),m,n,c:Math.round(c*10)/10,p:Math.round(p*10)/10,f:Math.round(f*10)/10,...(kind?{kind}: {})});
+function push(m,n,c,p,f,kind){const day=$("day").value,logs=dayLogs(),before=logs.length;logs.push({id:Date.now()+""+Math.random().toString(36).slice(2,5),m,n,c:Math.round(c*10)/10,p:Math.round(p*10)/10,f:Math.round(f*10)/10,...(kind?{kind}: {})});
  if(kind==='food'){const e=PLAN&&PLAN.ev.find(x=>x.id==m);if(e){const a=mealLogTotals(m,logs),cal=kcalOf(a),ratio=(v,t)=>t>0?v/t:0;const macroHits=[ratio(a.c,e.c),ratio(a.p,e.p),ratio(a.f,e.f)].filter(v=>v>=.65).length;if(cal>=e.kcal*.75&&macroHits>=2&&!logs.some(x=>x.m===m&&x.kind==='auto'))logs.push({id:'auto_'+Date.now(),m,n:'Repas marqué comme consommé automatiquement',c:0,p:0,f:0,kind:'auto'});}}
- save();render();toast(kind==="food"?"Aliment ajouté au repas ✓":"Repas enregistré ✓") }
+ try{persistLocal('gb27logs',JSON.stringify(LOGS))}catch(err){logs.splice(before);console.error('Échec sauvegarde journal alimentaire',err);toast(err&&err.perfmasterQuota?'Stockage plein : entrée non enregistrée. Exportez vos données avant toute autre modification.':'Impossible d’enregistrer le journal. Aucune entrée n’a été confirmée.');return;}
+ render();toast(kind==="food"?"Aliment ajouté au repas ✓":"Repas enregistré ✓") }
 function logOpt(id,i){const e=PLAN.ev.find(x=>x.id==id),o=e.opts[i];push(id,`${e.label} – ${o.title}`,o.c,o.p,o.f);openMeal(id)}
 function logRide(){push("ride","Fuel intra "+PLAN.rate+" g/h",PLAN.intraC,0,0);openRide()}
 function logFree(id){const f=SELF||findFood($("ff").value),g=+$("fg").value;if(!f||!g||g<=0){toast("Choisis un aliment et une quantité valide");return}if(f.c==null||f.p==null||f.f==null){toast("Valeurs nutritionnelles incomplètes : aliment non ajouté");return}const k=f.u=='p'?g:g/100;const src=f.source&&f.source!=='PERFMASTER'&&f.source!=='local'?' · '+f.source:'';
  if(f.on&&!FOODS.some(x=>x.n==f.n)){FOODS.push(Object.assign({},f,{on:0}));try{localStorage.setItem('gb27foods',JSON.stringify(FOODS))}catch(e){}}SELF=null;push(id,`${f.n}${src} · ${g}${f.u=='p'?' portion(s)':' g'}`,f.c*k,f.p*k,f.f*k,'food');openMeal(id)}
-function delLog(id){const k=$("day").value;LOGS[k]=dayLogs().filter(x=>x.id!=id);save();render();const m=document.querySelector(".mt");if(PLAN&&$("ov").classList.contains("on")){const t=m.textContent;t.includes("Fuel")?openRide():openMeal(PLAN.ev.find(e=>t.startsWith(e.label))?.id)}}
+function delLog(id){const k=$("day").value,previous=dayLogs();LOGS[k]=previous.filter(x=>x.id!=id);try{persistLocal('gb27logs',JSON.stringify(LOGS))}catch(err){LOGS[k]=previous;console.error('Échec suppression journal',err);toast('Suppression non enregistrée : les données ont été conservées.');return;}render();const m=document.querySelector(".mt");if(PLAN&&$("ov").classList.contains("on")&&m){const t=m.textContent;t.includes("Fuel")?openRide():openMeal(PLAN.ev.find(e=>t.startsWith(e.label))?.id)}}
 function showOtherSessions(d){const ss=sessionList(d);if(!ss.length)return;const current=ACTIVE_SESSION_ID;const html=ss.map(x=>{const c=x.cfg||DEF,sp=c.sport||"bike",label=sportLabel(sp),detail=sp==="bike"?(c.watts?` · ${c.watts} W`:""):sp==="run"?` · allure ${c.pace||"5:30"}`:"";return `<div class="card c-w" style="margin:.45rem 0"><div class="ch"><div class="cn">${label} · ${c.dur||0} h${detail}</div><button class="x" onclick="editSession('${d}','${x.id}')">Modifier</button></div><div class="ex">Séance planifiée séparément</div></div>`}).join("");$('v-home').insertAdjacentHTML('beforeend',`<div class="hm"><div class="sec">Toutes les séances du jour (${ss.length})</div>${html}<button class="btn b" onclick="chooseSession('${d}')">+ Ajouter une séance</button></div>`)}
 function home(P,nx,isToday,I){
  const S={none:"Endurance",vo2:"VO2 max",tempo:"Tempo / seuil",sprint:"Sprints"},sp=[$("s1").value,$("s2").value].filter(x=>x!="none").map(x=>S[x]),sportName={bike:"Vélo",run:"Course à pied",strength:"Musculation"}[P.sport]||"Vélo";
@@ -677,13 +709,13 @@ const getCfg=()=>{const c={MODE};['wake','ride','dur','watts','pace','skiPace','
 const DEF={MODE:'normal',wake:'07:30',ride:'09:30',dur:'0',sport:'bike',strengthIntensity:'moderate',enduranceIntensity:'moderate',skiPace:'6:00',swimPace:'2:00',watts:'205',pace:'5:30',s1:'none',s2:'none',caf:false,bet:false,hot:false,cold:false};
 function applyCfg(c){MODE=c.MODE==='affutage'?'pertepoids':(c.MODE||'normal');['wake','ride','dur','watts','pace','skiPace','swimPace','enduranceIntensity','s1','s2','sport','strengthIntensity'].forEach(i=>{if(i==='wake')$('wake').value=CFG.wake||c.wake||'07:30';else if(c[i]!=null&&$(i))$(i).value=c[i]});['caf','bet','hot','cold'].forEach(i=>{$(i).checked=!!c[i];$(i).closest('.cc').classList.toggle('on',!!c[i])});document.querySelectorAll('.mb').forEach(b=>b.classList.toggle('on',b.dataset.m==MODE))}
 const loadDay=()=>applyCfg(PLANS[$('day').value]||DEF);
-function planFor(d){const cur=getCfg();applyCfg(PLANS[d]||DEF);const P=gen(d);applyCfg(cur);return P}
+function planFor(d){const cur=getCfg();applyCfg(PLANS[d]||DEF);const P=applyMultiSessionEnergy(gen(d),d);applyCfg(cur);return P}
 const lvl=P=>!P.dur?['Repos','#6b7280']:(P.dur>=3||(P.hasQ&&P.dur>=1.5))?['Dur','#ef4444']:P.dur>=1.5?['Modéré','#f59e0b']:['Facile','#10b981'];
 // Niveau journalier basé sur l'ensemble des séances, et non sur le dernier sport sauvegardé.
 function dayLevel(d,P){const ss=sessionList(d).filter(x=>x&&x.cfg&&Number(x.cfg.dur)>0);if(!ss.length)return lvl(P);const total=ss.reduce((n,x)=>n+(Number(x.cfg.dur)||0),0);const hard=ss.some(x=>{const c=x.cfg||{};return (c.s1&&c.s1!=='none')||(c.s2&&c.s2!=='none')||c.strengthIntensity==='high'});return total>=3||(hard&&total>=1.5)?['Dur','#ef4444']:total>=1.5?['Modéré','#f59e0b']:['Facile','#10b981'];}
 const sg=v=>(v>=0?'+':'')+Math.round(v);
 function selDay(k){$('day').value=k;document.querySelectorAll('.dbtn').forEach(x=>x.classList.remove('on'));loadDay();render()}
-function setRest(){applyCfg(Object.assign({},PLANS[$('day').value]||DEF,{dur:'0',caf:false}));save();render()}
+function setRest(){const d=$('day').value;if(!d)return;const previousPlan=PLANS[d],previousSessions=SESSIONS[d],previousActive=ACTIVE_SESSION_ID;const cfg=Object.assign({},PLANS[d]||DEF,{dur:'0',caf:false});ACTIVE_SESSION_ID=null;PLANS[d]=cfg;SESSIONS[d]=[];try{persistBatch([['gb27sessions',JSON.stringify(SESSIONS)],['gb27plans',JSON.stringify(PLANS)]]);applyCfg(cfg);render();toast('Jour de repos enregistré ✓')}catch(err){if(previousPlan===undefined)delete PLANS[d];else PLANS[d]=previousPlan;if(previousSessions===undefined)delete SESSIONS[d];else SESSIONS[d]=previousSessions;ACTIVE_SESSION_ID=previousActive;console.error('Échec sauvegarde jour de repos',err);toast('Impossible d’enregistrer le jour de repos. Les séances ont été conservées.')}}
 function bmrCalc(kg){const p=PROF;if(+p.bmrm>0)return+p.bmrm;if(+p.bf>0)return Math.round(500+22*kg*(1-p.bf/100));return Math.round(10*kg+6.25*p.h-5*p.age+(p.sex=='f'?-161:5))}
 function dailyBaselineKcal(bmr,pal,wake,bed,sessions=[]){
  // Règle PERFMASTER : repos = BMR × PAL ; jour avec entraînement = BMR seul.
@@ -773,7 +805,7 @@ function saveRoutineTime(k,v){CFG[k]=v;try{localStorage.setItem("gb27cfg",JSON.s
 function sportLabel(s){return ({bike:'🚴 Vélo',run:'🏃 Course à pied',strength:'💪 Musculation',swim:'🏊 Natation',ski:'🎿 Ski de fond'})[s]||'🚴 Vélo'}
 function setWakeOnce(v){if(!v)return;CFG.wake=v;try{localStorage.setItem('gb27cfg',JSON.stringify(Object.assign({},CFG,{wake:v})));}catch(e){};$('wake').value=v;toast('Heure de réveil enregistrée ✓')}
 function chooseSession(d){
- $('day').value=d;const existing=sessionList(d),wake=(CFG.wake||$('wake').value||'07:30');
+ ACTIVE_SESSION_ID=null;$('day').value=d;const existing=sessionList(d),wake=(CFG.wake||$('wake').value||'07:30');
  openSheet(`<div class="mh"><div class="mt">Entraînements · ${fd(d)}</div><button class="x" onclick="closeSheet()">✕</button></div>
  <div class="f"><label>Heure de réveil habituelle (à régler une seule fois)</label><input type="time" id="globalWake" value="${wake}" onchange="setWakeOnce(this.value)"></div>
  <div class="ex">Choisis un sport pour ajouter une séance. Tu peux en planifier autant que tu veux dans la même journée. Les anciens plans enregistrés sont conservés ci-dessous.</div>
@@ -786,7 +818,7 @@ function deleteSession(d,id){
    const list=sessionList(d),before=list.length;
    SESSIONS[d]=list.filter(x=>String(x.id)!==String(id));
    if(SESSIONS[d].length===before){toast("Entraînement introuvable");chooseSession(d);return;}
-   if(!SESSIONS[d].length){PLANS[d]=Object.assign({},DEF);if(ACTIVE_SESSION_ID===id)ACTIVE_SESSION_ID=null;}
+   if(ACTIVE_SESSION_ID===id)ACTIVE_SESSION_ID=null;if(!SESSIONS[d].length){PLANS[d]=Object.assign({},DEF);}
    localStorage.setItem('gb27sessions',JSON.stringify(SESSIONS));
    localStorage.setItem('gb27plans',JSON.stringify(PLANS));
    render();chooseSession(d);toast('Entraînement supprimé ✓');
@@ -835,7 +867,7 @@ function impSess(inp){const f=inp.files[0];if(!f)return;const r=new FileReader()
  if(T.length<2){toast('Fichier illisible (.tcx ou .gpx attendus)');return}
  const a=T[0],b=T[T.length-1],h=(b-a)/36e5,o=[1,1.5,2,2.5,3,3.5,4,5],du=o.reduce((x,y)=>Math.abs(y-h)<Math.abs(x-h)?y:x),w=W.length?Math.round(W.reduce((s,x)=>s+x,0)/W.length):+DEF.watts,k=iso(a),hm=String(a.getHours()).padStart(2,'0')+':'+String(a.getMinutes()).padStart(2,'0');
  PLANS[k]=Object.assign({},PLANS[k]||DEF,{dur:String(du),ride:hm,watts:String(w)});save();closeSheet();selDay(k);tab('train');toast('Séance importée : '+du+' h · '+w+' W')};r.readAsText(f)}
-function expData(){const o={};for(const k of ['gb27logs','gb27cfg','gb27plans','gb27rec','gb27prof','gb27well','gb27wellDays','gb27races','gb27foods','gb27mealprefs','gb27custommeals','gb27sessions']){const v=localStorage.getItem(k);if(v!=null)o[k]=v}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:'application/json'}));a.download='perfmaster-'+ME+'.json';a.click()}
+function expData(){const o={};for(const k of ['gb27logs','gb27cfg','gb27plans','gb27rec','gb27prof','gb27well','gb27wellDays','gb27races','gb27foods','gb27mealprefs','gb27custommeals','gb27mealvariants','gb27deletedMeals','gb27sessions']){const v=localStorage.getItem(k);if(v!=null)o[k]=v}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:'application/json'}));a.download='perfmaster-'+ME+'.json';a.click()}
 function impData(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);for(const k in o)if(/^gb27/.test(k))localStorage.setItem(k,o[k]);location.reload()}catch(e){toast('Fichier invalide')}};r.readAsText(f)}
 let SELF=null,FRES=[],FT=0,WELL={},WELL_BY_DAY={};try{WELL=JSON.parse(localStorage.getItem('gb27well')||'{}');WELL_BY_DAY=JSON.parse(localStorage.getItem('gb27wellDays')||'{}');if(!Object.keys(WELL_BY_DAY).length&&Object.keys(WELL).length){const k=iso(new Date());WELL_BY_DAY[k]=Object.assign({date:k},WELL)}}catch(e){WELL={};WELL_BY_DAY={}}
 function foodNormalize(name,c,p,f,extra={}){const val=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v))?Number(v):null;const C=val(c),P=val(p),FAT=val(f);return {n:String(name||'Aliment').trim(),c:C,p:P,f:FAT,u:'g',source:extra.source||'local',sourceId:extra.sourceId||'',barcode:extra.barcode||'',brand:extra.brand||'',on:extra.on||0,missing:[C,P,FAT].some(v=>v===null)}}
@@ -866,7 +898,7 @@ function startAutoSyncIv(){
   if(document.hidden&&!force)return;
   if(!force&&Date.now()-IV_AUTO_LAST<2*60*1000)return;
   IV_AUTO_BUSY=true;IV_AUTO_LAST=Date.now();
-  try{await syncIv(true)}finally{IV_AUTO_BUSY=false;}
+  try{await syncIv(!force)}finally{IV_AUTO_BUSY=false;}
  };
  run(true);
  IV_AUTO_TIMER=setInterval(()=>run(false),5*60*1000);
@@ -909,7 +941,7 @@ async function syncIv(q){if($('pik')){PROF.ikey=$('pik').value.trim();PROF.iid=$
    if(!isPlanned&&item){
     for(let j=list.length-1;j>=0;j--){const z=list[j];if(z!==item&&z&&z.cfg&&z.planned!==false&&normSport(z.cfg.sport)===normSport(cfg.sport)&&Math.abs((Number(z.cfg.dur)||0)-roundedHours)<=0.5&&actualMin!==null&&mins(z.cfg.ride)!==null&&Math.abs(mins(z.cfg.ride)-actualMin)<=120)list.splice(j,1);}
    }
-   SESSIONS[k]=list;localStorage.setItem('gb27sessions',JSON.stringify(SESSIONS));
+   SESSIONS[k]=list;
    if(!PLANS[k]||!Number(PLANS[k].dur))PLANS[k]=Object.assign({},cfg);
    n++;
   };
@@ -933,9 +965,9 @@ async function syncIv(q){if($('pik')){PROF.ikey=$('pik').value.trim();PROF.iid=$
     WELL_BY_DAY[date]={date,hrv:hrv||null,rhr:rhr||null,sleep:sl||null,tip:tp.join(' '),source:'Intervals.icu'};
    });
    WELL=WELL_BY_DAY[$('day').value]||WELL;
-   try{localStorage.setItem('gb27wellDays',JSON.stringify(WELL_BY_DAY));localStorage.setItem('gb27well',JSON.stringify(WELL))}catch(e){}
+   /* Les métriques seront enregistrées avec les séances dans une seule transaction. */
   }
-  localStorage.setItem('gb27plans',JSON.stringify(PLANS));loadDay();save();render();cal();if(!q)toast(n+' séance(s) synchronisée(s)')}catch(x){console.error(x);if(!q)toast('Synchronisation impossible : vérifiez la clé API et la connexion.')}}
+  persistBatch([['gb27sessions',JSON.stringify(SESSIONS)],['gb27plans',JSON.stringify(PLANS)],['gb27wellDays',JSON.stringify(WELL_BY_DAY)],['gb27well',JSON.stringify(WELL)]]);loadDay();render();cal();if(!q)toast(n+' séance(s) synchronisée(s)')}catch(x){console.error(x);if(!q)toast('Synchronisation impossible : vérifiez la clé API et la connexion.')}}
 function shift(n){const d=new Date($('day').value+'T12:00');d.setDate(d.getDate()+n);$('day').value=iso(d);loadDay();render()}
 function dl(){const k=$('day').value,d=new Date(k+'T12:00'),df=Math.round((d-new Date(iso(new Date())+'T12:00'))/864e5),r=df==0?'Aujourd’hui':df==-1?'Hier':df==1?'Demain':'';$('dlab').textContent=(r?r+' · ':'')+d.toLocaleDateString('fr-CA',{weekday:'short',day:'numeric',month:'short'})}
 function enRender(P,lg,mode,now){const base=P.NE/1440,cl=x=>Math.max(0,Math.min(1,x)),sessions=P.sessions||[],exerciseAt=t=>sessions.reduce((sum,s)=>{const st=tm(s.start),en=st+s.dur*60,portion=en<=st?0:cl((t-st)/(en-st));return sum+(Number(s.netKcal)||0)*portion},0),exp=t=>base*t+exerciseAt(t),at=(m,t)=>m=='ride'?cl((t-P.R)/(P.E-P.R)):((P.ev.find(x=>x.id==m)||{t:9999}).t<=t?1:0),got=t=>lg.reduce((n,l)=>n+kcalOf(l)*at(l.m,t),0),
