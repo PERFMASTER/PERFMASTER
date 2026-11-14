@@ -804,7 +804,14 @@ function newSession(d,sport){
  // Ouvrir systématiquement le formulaire : une erreur de stockage ne doit pas rendre le bouton inerte.
  editSession(d,id);
 }
-function editSession(d,id){const x=sessionList(d).find(a=>a.id===id);if(!x)return;$('day').value=d;ACTIVE_SESSION_ID=id;applyCfg(x.cfg);PLANS[d]=x.cfg;closeSheet();render();tab('train');updateSportFields()}
+function editSession(d,id){
+ const x=sessionList(d).find(a=>a.id===id);if(!x)return;
+ // Fermer d'abord la fenêtre et afficher le formulaire avant le recalcul du tableau.
+ // Ainsi, une erreur de recalcul ne laisse pas l'interface bloquée sur le calendrier.
+ $('day').value=d;ACTIVE_SESSION_ID=id;PLANS[d]=x.cfg;
+ closeSheet();applyCfg(x.cfg);tab('train');updateSportFields();
+ try{render();}catch(err){console.error('Erreur pendant le recalcul après modification de séance:',err);toast('Séance ouverte, mais le recalcul a échoué. Réessayez après vérification.');}
+}
 function editDailyPlan(d){ACTIVE_SESSION_ID=null;$('day').value=d;loadDay();closeSheet();render();tab('train')}
 function updateSportFields(){const s=$('sport').value,n={bike:'vélo',run:'course à pied',strength:'musculation',swim:'natation',ski:'ski de fond'}[s]||'vélo';const title=$('sessionTitle');if(title)title.textContent='⚙️ Planification · '+({bike:'Vélo',run:'Course à pied',strength:'Musculation',swim:'Natation',ski:'Ski de fond'}[s]||'Vélo');const show=(id,on)=>{const e=$(id);if(e)e.style.display=on?'':'none'};show('wattsWrap',s==='bike');show('ftpWrap',s==='bike');show('paceWrap',s==='run');show('strengthIntensityWrap',s==='strength');show('enduranceIntensityWrap',s==='swim'||s==='ski');show('skiPaceWrap',s==='ski');show('swimPaceWrap',s==='swim');const ride=$('ride');if(ride){const label=ride.closest('.f')?.querySelector('label');if(label)label.textContent='Heure de départ de '+n;}const labels=document.querySelectorAll('#v-train .f label');labels.forEach(l=>{if(l.textContent.includes('Spécificité'))l.parentElement.style.display=['strength','swim','ski'].includes(s)?'none':'';});}
 function openDay(d){$('day').value=d;document.querySelectorAll('.dbtn').forEach(x=>x.classList.remove('on'));loadDay();render();chooseSession(d)}
