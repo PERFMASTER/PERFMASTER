@@ -156,6 +156,9 @@ input,select,textarea{max-width:100%;min-width:0}
 <datalist id="fl"></datalist><div class="auth" id="auth"></div>
 <script>
 let U='';const _g=Storage.prototype.getItem,_s=Storage.prototype.setItem,PX=k=>/^gb27(?!acc|sess|cur)/.test(k)?U+k:k;Storage.prototype.getItem=function(k){return _g.call(this,PX(k))};Storage.prototype.setItem=function(k,v){return _s.call(this,PX(k),v)};
+// Écriture locale résiliente : ne supprime jamais les données actives. En cas de quota,
+// elle retire uniquement les anciennes copies de secours (bak_*) puis réessaie une fois.
+function persistLocal(key,value){try{return _s.call(localStorage,PX(key),String(value))}catch(err){const quota=err&&(err.name==='QuotaExceededError'||err.name==='NS_ERROR_DOM_QUOTA_REACHED'||err.code===22||err.code===1014);if(!quota)throw err;const backups=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('bak_'))backups.push(k)}backups.forEach(k=>localStorage.removeItem(k))}catch(cleanErr){}try{return _s.call(localStorage,PX(key),String(value))}catch(retryErr){retryErr.perfmasterQuota=true;throw retryErr}}}
 const AC=()=>{try{return JSON.parse(localStorage.getItem('gb27acc')||'{}')}catch(e){return{}}};let ME='';try{ME=sessionStorage.getItem('gb27cur')||localStorage.getItem('gb27sess')||''}catch(e){}if(ME&&AC()[ME])U='u_'+ME+'_';else ME='';
 
 /* Auto-réparation : valide les données locales avant l'init (évite l'écran vide) */
@@ -474,20 +477,17 @@ function saveTrainingAndReturn(){
   try{
     const dk=$("day").value;
     if(!dk){toast("Choisis d’abord une journée");return;}
+    // save() persiste la séance, le plan et les paramètres. Ne réécrit pas les journaux
+    // alimentaires (potentiellement volumineux) à chaque modification d'entraînement.
     save();
-    if(ACTIVE_SESSION_ID){
-      const list=sessionList(dk), item=list.find(x=>x.id===ACTIVE_SESSION_ID);
-      if(item){item.cfg=getCfg();localStorage.setItem("gb27sessions",JSON.stringify(SESSIONS));}
-    }
-    localStorage.setItem("gb27plans",JSON.stringify(PLANS));
     render(); cal();
     toast("Entraînement sauvegardé ✓");
     tab("cal");
     chooseSession(dk);
-  }catch(err){console.error(err);toast("Impossible de sauvegarder. Vérifie l’espace de stockage de l’appareil.");}
+  }catch(err){console.error('Échec sauvegarde entraînement:',err);toast(err&&err.perfmasterQuota?'Stockage presque plein. Exportez vos données avant de libérer de l’espace.':'Impossible de sauvegarder : une erreur de stockage est survenue.');}
 }
 
-function save(){try{const cfg=getCfg(),dk=$("day").value;PLANS[dk]=cfg;if(ACTIVE_SESSION_ID){SESSIONS[dk]=(SESSIONS[dk]||[]).map(x=>x.id===ACTIVE_SESSION_ID?Object.assign({},x,{cfg:cfg}):x);localStorage.setItem("gb27sessions",JSON.stringify(SESSIONS));}localStorage.setItem("gb27plans",JSON.stringify(PLANS));localStorage.setItem("gb27logs",JSON.stringify(LOGS));const c=Object.assign({},CFG,{MODE});["kg","ftp","wake","ride","dur","watts","pace","s1","s2","sport","strengthIntensity","intraCeiling"].forEach(i=>{if($(i))c[i]=$(i).value});c.dinnerTime=CFG.dinnerTime||"19:15";c.bedTime=CFG.bedTime||"22:30";["caf","bet","hot","cold"].forEach(i=>c[i]=$(i).checked);localStorage.setItem("gb27cfg",JSON.stringify(c))}catch(e){}}
+function save(){const cfg=getCfg(),dk=$("day").value;if(!dk)throw new Error('Jour manquant');PLANS[dk]=cfg;if(ACTIVE_SESSION_ID){SESSIONS[dk]=(SESSIONS[dk]||[]).map(x=>x.id===ACTIVE_SESSION_ID?Object.assign({},x,{cfg:cfg}):x);persistLocal("gb27sessions",JSON.stringify(SESSIONS));}persistLocal("gb27plans",JSON.stringify(PLANS));const c=Object.assign({},CFG,{MODE});["kg","ftp","wake","ride","dur","watts","pace","s1","s2","sport","strengthIntensity","intraCeiling"].forEach(i=>{if($(i))c[i]=$(i).value});c.dinnerTime=CFG.dinnerTime||"19:15";c.bedTime=CFG.bedTime||"22:30";["caf","bet","hot","cold"].forEach(i=>{if($(i))c[i]=$(i).checked});persistLocal("gb27cfg",JSON.stringify(c));}
 function toast(m){const t=$("ts");t.textContent=m;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),1800)}
 function count(el,v,suf){const a=parseFloat(el.dataset.v||0),t0=performance.now();el.dataset.v=v;(function s(n){const k=Math.min(1,(n-t0)/500);el.textContent=Math.round(a+(v-a)*k)+suf;if(k<1)requestAnimationFrame(s)})(t0)}
 function applyMultiSessionEnergy(P,dayKey){
@@ -762,16 +762,12 @@ const raceLong=r=>!/prologue|time trial|clm|contre|crit/i.test((r.t||'')+' '+(r.
 function raceCtx(gd){const day=RACES.find(r=>r.d==gd&&r.o!='-'),a=RACES.find(r=>r.d==addD(gd,1)&&(r.o=='A'||r.o=='a')&&raceLong(r)),b=RACES.find(r=>r.d==addD(gd,2)&&(r.o=='A'||r.o=='a')&&raceLong(r));return{day,load:a?(a.o=='A'?10:9):b?8:0}}
 function sessionList(d){
  // Ne migrer l'ancien plan que si aucune liste n'existait pour ce jour.
- // Une liste vide est un choix explicite de l'utilisateur (toutes les séances supprimées).
- const hasSavedList=Object.prototype.hasOwnProperty.call(SESSIONS,d)&&Array.isArray(SESSIONS[d]);
- if(!hasSavedList){
-   SESSIONS[d]=[];
-   if(PLANS[d] && Number(PLANS[d].dur||0)>0){
-     SESSIONS[d].push({id:'legacy_'+d,cfg:Object.assign({},DEF,PLANS[d]),legacy:true});
-   }
-   try{localStorage.setItem('gb27sessions',JSON.stringify(SESSIONS))}catch(e){}
- }
- return SESSIONS[d];
+ // Ne pas créer/enregistrer des listes vides à chaque affichage du calendrier :
+ // cela multipliait inutilement les écritures et faisait grossir le stockage local.
+ if(Object.prototype.hasOwnProperty.call(SESSIONS,d)&&Array.isArray(SESSIONS[d]))return SESSIONS[d];
+ const legacy=PLANS[d]&&Number(PLANS[d].dur||0)>0?[{id:'legacy_'+d,cfg:Object.assign({},DEF,PLANS[d]),legacy:true}]:[];
+ if(legacy.length){SESSIONS[d]=legacy;try{persistLocal('gb27sessions',JSON.stringify(SESSIONS))}catch(e){console.warn('Migration de séance différée : stockage indisponible',e)}}
+ return legacy;
 }
 function saveRoutineTime(k,v){CFG[k]=v;try{localStorage.setItem("gb27cfg",JSON.stringify(CFG))}catch(e){}toast("Habitude enregistrée ✓")}
 function sportLabel(s){return ({bike:'🚴 Vélo',run:'🏃 Course à pied',strength:'💪 Musculation',swim:'🏊 Natation',ski:'🎿 Ski de fond'})[s]||'🚴 Vélo'}
