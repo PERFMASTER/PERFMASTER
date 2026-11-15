@@ -14,5 +14,5 @@ INSTALLATION
 IMPORTANT
 - Ne désinstallez pas la PWA et ne changez pas de domaine : les données locales sont liées à l'origine du site.
 - Cette archive ne contient pas les icônes, le manifeste ni les autres ressources du site : elle n'est pas destinée à remplacer tout le projet.
-- Le changement de mise en page se fait automatiquement selon la largeur de l'écran : navigation latérale et espace de travail large sur ordinateur, interface compacte sur téléphone.
+- Le changement de mise en page se fait automatiquement selon la largeur de l'écran : même structure horizontale sur ordinateur et téléphone. Sur ordinateur, le sélecteur des jours reste centré en haut et les cinq onglets restent alignés horizontalement en bas; le contenu utilise simplement la largeur supplémentaire.
 - Les conseils du coach sont générés à partir des métriques effectivement disponibles. En l'absence de données, l'application le signale au lieu d'inventer un état de forme.

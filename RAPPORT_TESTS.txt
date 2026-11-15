@@ -3,14 +3,14 @@ RAPPORT DE VALIDATION — PERFMASTER
 MODIFICATIONS
 1. Mise en page adaptative
 - Sous 900 px : conservation de l'interface mobile compacte.
-- À partir de 900 px : espace de travail élargi, navigation latérale, grilles et formulaires mieux répartis, fenêtres modales centrées.
+- À partir de 900 px : même organisation horizontale que sur mobile, contenu élargi, sélecteur des jours conservé au centre en haut et navigation des cinq onglets conservée horizontalement en bas.
 - Adaptation basée sur la largeur disponible, sans demander à l'utilisateur de choisir un mode.
 
 2. Interactions
-- Retrait du double mécanisme pointerup + click qui pouvait activer la navigation deux fois ou entrer en conflit avec le clic natif.
+- Suppression de l’ancien gestionnaire individuel des boutons pour éviter deux chemins concurrents.
 - Navigation des onglets centralisée sur un seul gestionnaire click délégué.
 - Protection contre la sélection accidentelle sur les éléments réellement cliquables, sans désactiver la sélection dans les champs et les textes ordinaires.
-- Abaissement du z-index de la navigation mobile pour que les fenêtres modales puissent couvrir la barre de navigation.
+- Conservation de la barre d’onglets horizontale; gestionnaire délégué unique pour les interactions tactiles et clics.
 
 3. Coach
 - Ajout d'une analyse visible dans l'écran Récupération.

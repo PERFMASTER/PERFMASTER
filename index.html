@@ -137,41 +137,40 @@ button,.btn,[role="button"],.nb,[onclick],.card[onclick],.cl[data-k],.st[data-r]
 }
 button,.btn,[role="button"],[onclick],.card[onclick],.cl[data-k],.st[data-r],.ob,[data-a],[data-x],[data-d]{cursor:pointer}
 button:focus-visible,.btn:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--cy);outline-offset:3px}
-/* Sur grand écran, PERFMASTER devient une véritable interface de bureau. */
+/* Mise en page adaptative : même organisation sur mobile et ordinateur, avec plus d'espace horizontal. */
 @media (min-width: 900px){
  body{display:block;padding:20px;min-height:100vh}
- .app{width:min(100%,1600px);max-width:1600px;min-height:calc(100vh - 40px);margin:0 auto;border-radius:22px;display:grid;grid-template-columns:224px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);align-items:start;overflow:visible}
- .hdr{grid-column:1/-1;grid-row:1;position:sticky;top:0;border-radius:22px 22px 0 0;padding:1.2rem 2rem;z-index:35}
+ .app{width:min(100%,1500px);max-width:1500px;min-height:calc(100vh - 40px);margin:0 auto 110px;border-radius:22px;display:block;overflow:visible}
+ .hdr{position:sticky;top:0;border-radius:22px 22px 0 0;padding:1.2rem 2.4rem 1rem;z-index:35}
  .bar{margin-bottom:.9rem}.brand{font-size:1.45rem}.brand-logo{width:36px;height:36px}
- .dates{max-width:560px}
- .view{grid-column:2;grid-row:2;min-width:0;width:100%;max-width:none;min-height:calc(100vh - 150px);padding:1.25rem 2rem 3rem;display:none}
+ .dates{width:min(560px,70%);margin:0 auto}
+ .view{width:100%;max-width:none;min-height:calc(100vh - 190px);padding:1.4rem clamp(1.5rem,3vw,3rem) 3rem;display:none}
  .view.on{display:block}
- #v-board{padding:0 2rem 3rem}
- #v-board>.dash{margin:0 -2rem 1rem;padding:1.5rem 2rem;border-radius:0 0 18px 18px}
- #v-board>.en,#v-board>.tl{padding:1.3rem 0}
- #v-home>.hm,#v-recup>.hm,#v-course>.hm,#v-cal>.hm{max-width:1200px;margin:0 auto;padding:1.4rem 0}
+ #v-board{padding:0 clamp(1.5rem,3vw,3rem) 3rem}
+ #v-board>.dash{margin:0 calc(-1 * clamp(1.5rem,3vw,3rem)) 1rem;padding:1.5rem clamp(1.5rem,3vw,3rem);border-radius:0 0 18px 18px}
+ #v-home>.hm,#v-recup>.hm,#v-course>.hm,#v-cal>.hm{max-width:1320px;margin:0 auto;padding:1.4rem 0}
  #v-home .mg,#v-board .mg{grid-template-columns:repeat(4,minmax(120px,1fr));gap:.8rem}
  .mp{padding:.85rem .65rem}.mv{font-size:1rem}.ml{font-size:.72rem}
- .tl{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:1rem;align-items:start}
+ .tl{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:1rem;align-items:start}
  .tl>.dt{grid-column:1/-1}
  #v-home .card,#v-recup .card{padding:1.1rem 1.2rem}
  #v-cal .cg{gap:.55rem;font-size:.95rem}.cl{padding:.9rem 0}
- #v-train{max-width:1200px;margin:0 auto}
+ #v-train{max-width:1320px;margin:0 auto}
  #v-train .cfg{border:1px solid var(--bd);border-radius:18px;margin:1rem 0;padding:1.5rem}
  #v-train .fg{grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
  #v-train .f.full{grid-column:1/-1}
- nav{grid-column:1;grid-row:2;position:sticky;left:auto;bottom:auto;top:0;transform:none;width:auto;max-width:none;height:calc(100vh - 150px);min-height:520px;align-self:start;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:.45rem;padding:1.4rem .9rem;background:transparent;border:0;border-right:1px solid var(--bd);border-radius:0;backdrop-filter:none;z-index:25}
- .nb{width:100%;min-height:58px;flex-direction:row;justify-content:flex-start;gap:.85rem;padding:.7rem .9rem;border-radius:12px;font-size:.82rem;text-align:left}
- .nb .ic{font-size:1.35rem;width:28px;text-align:center}
- .nb.home{margin:0}.nb.home .ic{width:28px;height:auto;border:0;background:transparent;box-shadow:none;border-radius:0;font-size:1.35rem}
- .nb.home.on .ic{background:transparent;transform:none}
+ nav{position:fixed;left:50%;bottom:0;top:auto;transform:translateX(-50%);width:min(100%,1500px);max-width:1500px;height:auto;min-height:0;display:flex;flex-direction:row;justify-content:space-around;align-items:flex-end;gap:.5rem;padding:.6rem 2rem calc(.7rem + env(safe-area-inset-bottom,0px));background:rgba(18,24,36,.97);border:1px solid var(--bd);border-bottom:0;border-radius:22px 22px 0 0;backdrop-filter:blur(12px);z-index:40}
+ .nb{width:auto;min-width:100px;min-height:58px;flex:1;flex-direction:column;justify-content:center;gap:.2rem;padding:.45rem .6rem;border-radius:12px;font-size:.68rem;text-align:center}
+ .nb .ic{font-size:1.35rem;width:auto;text-align:center}
+ .nb.home{margin-top:-26px}.nb.home .ic{width:58px;height:58px;border:3px solid var(--b);background:#16233b;display:flex;align-items:center;justify-content:center;font-size:1.7rem;box-shadow:0 6px 20px rgba(59,130,246,.35),0 0 0 5px #0f1522;border-radius:50%}
+ .nb.home.on .ic{background:var(--b);transform:scale(1.05)}
  .nb.on{background:rgba(59,130,246,.13);color:#93c5fd}
  .ov{align-items:center;justify-content:center;padding:2rem}
  .sheet{width:min(760px,calc(100vw - 3rem));max-width:760px;border-radius:22px;padding:1.6rem;max-height:88vh;transform:translateY(18px)}
  .ov.on .sheet{transform:none}
- .meal-add-fab{right:32px;bottom:28px}
+ .meal-add-fab{right:32px;bottom:110px}
 }
-@media (min-width: 900px) and (max-width: 1150px){.app{grid-template-columns:190px minmax(0,1fr)}.view{padding-left:1.3rem;padding-right:1.3rem}#v-board{padding-left:1.3rem;padding-right:1.3rem}#v-board>.dash{margin-left:-1.3rem;margin-right:-1.3rem;padding-left:1.3rem;padding-right:1.3rem}}
+@media (min-width: 900px) and (max-width: 1150px){.view{padding-left:1.3rem;padding-right:1.3rem}#v-board{padding-left:1.3rem;padding-right:1.3rem}#v-board>.dash{margin-left:-1.3rem;margin-right:-1.3rem;padding-left:1.3rem;padding-right:1.3rem}}
 @media (max-width: 899px){.app{max-width:480px}.view{width:100%}}
 </style><link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0e17">
@@ -828,7 +827,7 @@ function home(P,nx,isToday,I){
   nh=`<div class="card ${COL[m.type]}" onclick="goMeal('${m.id}')"><div class="ch"><div class="big">${m.label}</div><div class="ck">${fm(m.t)}</div></div><div class="tg"><span style="color:#67e8f9">C ${m.c}g</span><span style="color:#6ee7b7">P ${m.p}g</span><span style="color:#fcd34d">F ${m.f}g</span><span>${m.kcal} kcal</span></div><div class="ex">Proposition : ${m.opts[0]?.title||"Aucune recette compatible avec les préférences"}</div>${cd?`<div class="cd">${cd}</div>`:""}<div class="ex">Touche pour voir les options et enregistrer.</div></div>`}
  $("v-home").innerHTML=`<div class="hm"><div class="dtl" style="display:flex;justify-content:space-between;align-items:center"><span>${d}</span><button class="x" onclick="openProf()" aria-label="Profil">⚙️</button></div><div class="sec">Entraînement du jour</div><div class="card c-w" onclick="goRide()"><div class="ch"><div class="cn">${P.sport==="bike"?"🚴":P.sport==="run"?"🏃":P.sport==="swim"?"🏊":P.sport==="ski"?"🎿":"💪"} ${sportName} · ${fm(P.R)} – ${fm(P.E)} · ${P.dur.toFixed(2)} h${P.sport==="bike"&&P.watts?" · "+P.watts+" W":""}</div></div>${P.rate>0?`<div class="rate">${P.rate} g/h</div>`:""}<div class="tg"><span>${sp.length?sp.join(" + "):"Endurance Z2"}</span><span>${MODE}</span><span>TSS ≈ ${P.TSS}</span><span>${P.intraC} g glucides</span></div></div>${CFG.mealSuggestions===false?"":`<div class="sec">${isToday?"Prochain repas":"Premier repas du jour"}</div>${nh}`}<div class="sec">Objectif du jour</div><div class="tg"><span>${P.tgt.kcal} kcal</span><span style="color:#67e8f9">C ${P.tgt.c}g (${(P.tgt.c/P.kg).toFixed(1)} g/kg)</span><span style="color:#6ee7b7">P ${P.tgt.p}g</span><span style="color:#fcd34d">F ${P.tgt.f}g</span></div></div>`}
 function tab(n){if(n!='train')PREV=n;$('dates').style.display=n=='course'?'none':'';["home","board","train","recup","cal","course"].forEach(k=>$("v-"+k).classList.toggle("on",k==n));document.querySelectorAll(".nb").forEach(b=>b.classList.toggle("on",b.dataset.t==n));scrollTo({top:0,behavior:"smooth"})}
-document.querySelectorAll(".nb").forEach(b=>b.onclick=()=>tab(b.dataset.t));
+
 const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
 const getCfg=()=>{const c={MODE};['wake','ride','dur','watts','pace','skiPace','swimPace','enduranceIntensity','s1','s2','sport','strengthIntensity'].forEach(i=>{if($(i))c[i]=$(i).value});['caf','bet','hot','cold'].forEach(i=>c[i]=$(i).checked);const saved=PLANS[$('day').value];if(saved&&saved.eeOverride>0)c.eeOverride=saved.eeOverride;return c};
 const DEF={MODE:'normal',wake:'07:30',ride:'09:30',dur:'0',sport:'bike',strengthIntensity:'moderate',enduranceIntensity:'moderate',skiPace:'6:00',swimPace:'2:00',watts:'205',pace:'5:30',s1:'none',s2:'none',caf:false,bet:false,hot:false,cold:false};
@@ -1217,43 +1216,25 @@ setDay(0);loadDay();render();updateSportFields();if(sessionStorage.getItem('gb27
 window.addEventListener('error',e=>{console.error('Erreur d’interface PERFMASTER:',e.error||e.message);if(window.__ok&&$('ts'))toast('Une action a rencontré une erreur. Réessayez; vos données locales ne sont pas réinitialisées.');});
 window.addEventListener('unhandledrejection',e=>{console.error('Action PERFMASTER interrompue:',e.reason);if(window.__ok&&$('ts'))toast('Une opération a échoué. L’application reste utilisable.');});
 </script><script>
-/* Couche de secours indépendante de l'initialisation principale. Elle garantit
-   que les onglets restent navigables même si un autre module échoue au démarrage. */
+/* Navigation unique et déléguée : clic, tactile et clavier sur les 5 onglets. */
 (function(){
- const keys=['home','board','train','recup','cal','course'];
- let lastPointer=0;
- function navigate(name){
-  if(!keys.includes(name))return;
-  const overlay=document.getElementById('ov');
-  if(overlay&&overlay.classList.contains('on')){
-   try{if(typeof window.closeSheet==='function')window.closeSheet();else overlay.classList.remove('on');}catch(e){overlay.classList.remove('on');}
-  }
-  try{if(typeof window.tab==='function')window.tab(name);}catch(e){console.error('Navigation PERFMASTER (fonction principale):',e);}
-  keys.forEach(k=>{const v=document.getElementById('v-'+k);if(v)v.classList.toggle('on',k===name);});
-  document.querySelectorAll('nav .nb[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===name));
-  const dates=document.getElementById('dates');if(dates)dates.style.display=name==='course'?'none':'';
-  const view=document.getElementById('v-'+name);
-  if(view&&!view.childElementCount&&typeof window.render==='function'){
-   try{window.render();}catch(e){console.error('Rendu PERFMASTER:',e);}
-   keys.forEach(k=>{const v=document.getElementById('v-'+k);if(v)v.classList.toggle('on',k===name);});
-  }
-  try{window.scrollTo(0,0);}catch(e){}
-  document.dispatchEvent(new CustomEvent('perfmaster:tabchange',{detail:{tab:name}}));
- }
- window.perfmasterNavigate=navigate;
- function navTarget(e){
-  const t=e.target&&e.target.closest?e.target.closest('nav .nb[data-t]'):null;
-  if(!t)return null;
-  return t;
- }
- // Une seule activation native par clic : pas de pointerup + click concurrents.
- // Les boutons restent accessibles au clavier grâce à leur sémantique HTML native.
+ const valid=new Set(['home','board','train','recup','cal','course']);
  document.addEventListener('click',function(e){
-  const b=navTarget(e);if(!b)return;
-  e.preventDefault();e.stopPropagation();
-  if(e.stopImmediatePropagation)e.stopImmediatePropagation();
-  navigate(b.dataset.t);
- },true);
+  const button=e.target && e.target.closest ? e.target.closest('nav button.nb[data-t]') : null;
+  if(!button || !valid.has(button.dataset.t)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const name=button.dataset.t;
+  try {
+   if(document.getElementById('ov')?.classList.contains('on') && typeof window.closeSheet==='function') window.closeSheet();
+   if(typeof window.tab==='function') window.tab(name);
+   else {
+    valid.forEach(k=>document.getElementById('v-'+k)?.classList.toggle('on',k===name));
+    document.querySelectorAll('nav .nb[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===name));
+    const dates=document.getElementById('dates'); if(dates) dates.style.display=name==='course'?'none':'';
+   }
+  } catch(err) { console.error('Navigation PERFMASTER:',err); }
+ }, true);
 })();
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));}</script>
