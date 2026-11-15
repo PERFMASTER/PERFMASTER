@@ -1,33 +1,29 @@
-PERFMASTER — RAPPORT DE VALIDATION TECHNIQUE
-Date : 15 novembre 2026
+RAPPORT DE VALIDATION — PERFMASTER
 
-Fichier reconstruit à partir du dernier index PERFMASTER disponible dans la bibliothèque du projet. Les fichiers de l’autre application VELAB ont été exclus.
+MODIFICATIONS
+1. Mise en page adaptative
+- Sous 900 px : conservation de l'interface mobile compacte.
+- À partir de 900 px : espace de travail élargi, navigation latérale, grilles et formulaires mieux répartis, fenêtres modales centrées.
+- Adaptation basée sur la largeur disponible, sans demander à l'utilisateur de choisir un mode.
 
-CORRECTIONS INTÉGRÉES
-- Répartition exacte des glucides, protéines et lipides par poids du type de repas, et non par les quantités précédentes qui pouvaient être déséquilibrées.
-- Conservation des allocations pré-entraînement, post-entraînement et du réglage de glucides habituels au petit-déjeuner; redistribution du reste entre les autres repas.
-- Recalcul de la répartition lorsqu’un repas est supprimé, en conservant les totaux journaliers.
-- Compatibilité des repas personnalisés avec les poids de répartition par défaut.
-- Navigation mobile par gestionnaire tactile et clic indépendant, avec fermeture du panneau modal et activation de la vue choisie.
-- Service worker mis à jour : chargement réseau prioritaire de l’index et remplacement du cache PERFMASTER obsolète. Le stockage local n’est pas effacé.
+2. Interactions
+- Retrait du double mécanisme pointerup + click qui pouvait activer la navigation deux fois ou entrer en conflit avec le clic natif.
+- Navigation des onglets centralisée sur un seul gestionnaire click délégué.
+- Protection contre la sélection accidentelle sur les éléments réellement cliquables, sans désactiver la sélection dans les champs et les textes ordinaires.
+- Abaissement du z-index de la navigation mobile pour que les fenêtres modales puissent couvrir la barre de navigation.
 
-TESTS EXÉCUTÉS
-- Vérification syntaxique Node.js des 3 blocs JavaScript : réussite.
-- Analyse HTML : 5 boutons de navigation et les 6 vues attendues sont présents.
-- Test d’exécution en navigateur Chromium avec stockage local simulé et profil connecté : initialisation réussie (window.__ok = 1), aucune erreur JavaScript non gérée.
-- Test mobile des 5 onglets (Tableau de bord, Récupération, Course, Calendrier, Accueil) : chaque touche active la bonne vue et le bon onglet.
-- Test de macros jour de repos : 208 g glucides, 130 g protéines et 94 g lipides répartis sur 5 repas; sommes des repas identiques aux objectifs.
-- Test de 2 séances sur une journée (vélo 2 h + musculation 1 h) : les deux séances sont comptées; 3343 kcal estimées; 477 g glucides au total dont 100 g intra-séance; 154 g protéines et 91 g lipides; sommes des macros des repas cohérentes avec les cibles hors intra. Aucun repas de ce test n’est à 0 g de glucides.
-- Test de suppression d’un repas : les totaux redistribués restent exactement 300 g glucides, 140 g protéines et 80 g lipides dans le scénario testé.
-- Test simulé de synchronisation Intervals.icu : réponse API mockée acceptée avec authentification Basic (identifiant API_KEY); une activité vélo a remplacé la séance planifiée correspondante sans créer de doublon. Ce test ne valide pas la connexion au compte réel.
-- Test de navigation depuis une fenêtre de repas ouverte : le changement d’onglet ferme le panneau modal et affiche la vue sélectionnée.
-- ZIP vérifié : aucune erreur CRC.
+3. Coach
+- Ajout d'une analyse visible dans l'écran Récupération.
+- Comparaison de la VFC et de la fréquence cardiaque au repos avec les dernières valeurs disponibles, si l'historique existe.
+- Conseils adaptés au sommeil, à la charge enregistrée et aux journées sans entraînement.
+- Explication explicite des limites : métriques variables, absence de diagnostic et absence de données signalée clairement.
 
-LIMITES QUI NE PEUVENT PAS ÊTRE CERTIFIÉES ICI
-- La synchronisation Intervals.icu nécessite un test authentifié avec votre compte réel; elle n’a pas été validée en direct.
-- Les appels réseau FCÉN, USDA et Open Food Facts et le scan caméra réel nécessitent un essai en ligne sur votre téléphone.
-- Le déploiement Cloudflare Pages et les interactions sur votre appareil ne sont pas contrôlables depuis cet environnement.
-- Les connexions OAuth directes Garmin/WHOOP/TrainingPeaks et le stockage serveur multi-appareils ne font pas partie de cette application statique.
+VALIDATIONS TECHNIQUES EFFECTUÉES
+- Syntaxe des 3 blocs JavaScript inline : réussie avec node --check.
+- Analyse CSS : 0 erreur de syntaxe détectée.
+- Vérification statique : breakpoint ordinateur présent, un seul gestionnaire de clic de navigation, ancien gestionnaire pointerup retiré, panneau coach inséré dans l'écran récupération.
 
-CONSERVATION DES DONNÉES
-Le code conserve les mêmes clés et le même mécanisme de stockage local existants. Déployer sur le même domaine/origine. Ne pas désinstaller l’application, ne pas vider les données et ne pas changer de domaine. Exporter les données avant déploiement par précaution.
+LIMITES DE VALIDATION
+- Le navigateur de test automatisé a bloqué l'ouverture de la page locale (ERR_BLOCKED_BY_ADMINISTRATOR). Il n'a donc pas été possible de confirmer le rendu visuel réel ni de réaliser un parcours complet des boutons sur ordinateur et téléphone dans cette session.
+- Le déploiement Cloudflare, les données locales de l'utilisateur et les connexions externes n'ont pas été testés.
+- Cette version est une amélioration ciblée, pas une garantie d'absence totale de bugs. Il faut valider le parcours sur le site déployé avant de considérer le problème définitivement réglé.

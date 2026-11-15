@@ -1,18 +1,18 @@
-PERFMASTER — reconstruction stabilisée (15 novembre 2026)
+PERFMASTER — VERSION ORDINATEUR + INTERACTIONS + COACH
 
-Contenu :
-- RAPPORT_TESTS.txt : résultats des vérifications et limites de validation.
-- index.html : version complète de l’application PERFMASTER, avec redistribution des macros recalculée par type de repas plutôt que selon l’ancien partage déjà possiblement déséquilibré.
-- service-worker.js : mise à jour réseau prioritaire et invalidation de l’ancien cache PERFMASTER.
+CONTENU
+- index.html : interface responsive et améliorations du coach.
+- service-worker.js : version de cache mise à jour pour charger le nouvel index.
 
-Installation :
-1. Exporter les données depuis PERFMASTER avant tout remplacement.
-2. Déployer ces deux fichiers à la racine du projet Cloudflare Pages, au même domaine qu’avant.
-3. Conserver les autres ressources déjà présentes (manifest.webmanifest, icônes, logo, fonctions et autres fichiers).
-4. Ne pas désinstaller l’application, ne pas effacer les données du site et ne pas changer de domaine.
+INSTALLATION
+1. Exportez d'abord vos données depuis PERFMASTER (Paramètres > Exporter mes données).
+2. Décompressez cette archive.
+3. Dans votre projet Cloudflare Pages, remplacez uniquement index.html et service-worker.js à la racine.
+4. Conservez le même domaine et tous les autres fichiers existants (manifest, icônes, logo, etc.).
+5. Redéployez le projet.
 
-Limites de validation :
-- Les contrôles statiques JavaScript/HTML et les tests unitaires de répartition des macros sont fournis dans le rapport séparé.
-- Seul un test simulé d’Intervals.icu a été fait; la connexion à votre compte réel et à votre clé n’a pas été validée. Aucune clé n’est incluse.
-- Les clics physiques sur votre téléphone et le déploiement Cloudflare ne peuvent pas être validés depuis cet environnement.
-- Les connexions OAuth directes Garmin/WHOOP/TrainingPeaks et le stockage serveur des comptes ne sont pas ajoutés par cette reconstruction statique.
+IMPORTANT
+- Ne désinstallez pas la PWA et ne changez pas de domaine : les données locales sont liées à l'origine du site.
+- Cette archive ne contient pas les icônes, le manifeste ni les autres ressources du site : elle n'est pas destinée à remplacer tout le projet.
+- Le changement de mise en page se fait automatiquement selon la largeur de l'écran : navigation latérale et espace de travail large sur ordinateur, interface compacte sur téléphone.
+- Les conseils du coach sont générés à partir des métriques effectivement disponibles. En l'absence de données, l'application le signale au lieu d'inventer un état de forme.

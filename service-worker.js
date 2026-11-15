@@ -1,4 +1,4 @@
-const PM_CACHE = 'perfmaster-cache-20261115-r6';
+const PM_CACHE = 'perfmaster-cache-20261115-r7';
 self.addEventListener('install', event => { self.skipWaiting(); });
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {

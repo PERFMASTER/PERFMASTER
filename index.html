@@ -121,8 +121,58 @@ input,select,textarea{max-width:100%;min-width:0}
 
 /* Navigation mobile robuste : boutons tactiles, sans sélection de texte. */
 nav,.nb{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; touch-action:manipulation; -webkit-tap-highlight-color:transparent; pointer-events:auto; }
-nav{z-index:80;}
+nav{z-index:40;}
 nav .nb{min-height:48px;position:relative;z-index:81;}
+
+
+.coach-panel{background:linear-gradient(145deg,rgba(16,185,129,.09),rgba(59,130,246,.07));border:1px solid rgba(16,185,129,.28);border-radius:16px;padding:1rem;margin:1rem 0}
+.coach-note{display:flex;gap:.65rem;align-items:flex-start;font-size:.78rem;line-height:1.5;margin:.65rem 0;color:var(--t)}
+.coach-note>span{flex:0 0 22px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(16,185,129,.16);color:var(--g);font-size:.68rem;font-weight:800}
+.coach-foot{border-top:1px solid var(--bd);padding-top:.65rem;margin-top:.8rem}
+@media(min-width:900px){.coach-panel{padding:1.3rem;margin:1.2rem 0}.coach-note{font-size:.86rem}}
+
+/* Interaction fiable : seules les surfaces réellement actionnables empêchent la sélection. */
+button,.btn,[role="button"],.nb,[onclick],.card[onclick],.cl[data-k],.st[data-r],.ob,[data-a],[data-x],[data-d]{
+ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;
+}
+button,.btn,[role="button"],[onclick],.card[onclick],.cl[data-k],.st[data-r],.ob,[data-a],[data-x],[data-d]{cursor:pointer}
+button:focus-visible,.btn:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--cy);outline-offset:3px}
+/* Sur grand écran, PERFMASTER devient une véritable interface de bureau. */
+@media (min-width: 900px){
+ body{display:block;padding:20px;min-height:100vh}
+ .app{width:min(100%,1600px);max-width:1600px;min-height:calc(100vh - 40px);margin:0 auto;border-radius:22px;display:grid;grid-template-columns:224px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);align-items:start;overflow:visible}
+ .hdr{grid-column:1/-1;grid-row:1;position:sticky;top:0;border-radius:22px 22px 0 0;padding:1.2rem 2rem;z-index:35}
+ .bar{margin-bottom:.9rem}.brand{font-size:1.45rem}.brand-logo{width:36px;height:36px}
+ .dates{max-width:560px}
+ .view{grid-column:2;grid-row:2;min-width:0;width:100%;max-width:none;min-height:calc(100vh - 150px);padding:1.25rem 2rem 3rem;display:none}
+ .view.on{display:block}
+ #v-board{padding:0 2rem 3rem}
+ #v-board>.dash{margin:0 -2rem 1rem;padding:1.5rem 2rem;border-radius:0 0 18px 18px}
+ #v-board>.en,#v-board>.tl{padding:1.3rem 0}
+ #v-home>.hm,#v-recup>.hm,#v-course>.hm,#v-cal>.hm{max-width:1200px;margin:0 auto;padding:1.4rem 0}
+ #v-home .mg,#v-board .mg{grid-template-columns:repeat(4,minmax(120px,1fr));gap:.8rem}
+ .mp{padding:.85rem .65rem}.mv{font-size:1rem}.ml{font-size:.72rem}
+ .tl{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:1rem;align-items:start}
+ .tl>.dt{grid-column:1/-1}
+ #v-home .card,#v-recup .card{padding:1.1rem 1.2rem}
+ #v-cal .cg{gap:.55rem;font-size:.95rem}.cl{padding:.9rem 0}
+ #v-train{max-width:1200px;margin:0 auto}
+ #v-train .cfg{border:1px solid var(--bd);border-radius:18px;margin:1rem 0;padding:1.5rem}
+ #v-train .fg{grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+ #v-train .f.full{grid-column:1/-1}
+ nav{grid-column:1;grid-row:2;position:sticky;left:auto;bottom:auto;top:0;transform:none;width:auto;max-width:none;height:calc(100vh - 150px);min-height:520px;align-self:start;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:.45rem;padding:1.4rem .9rem;background:transparent;border:0;border-right:1px solid var(--bd);border-radius:0;backdrop-filter:none;z-index:25}
+ .nb{width:100%;min-height:58px;flex-direction:row;justify-content:flex-start;gap:.85rem;padding:.7rem .9rem;border-radius:12px;font-size:.82rem;text-align:left}
+ .nb .ic{font-size:1.35rem;width:28px;text-align:center}
+ .nb.home{margin:0}.nb.home .ic{width:28px;height:auto;border:0;background:transparent;box-shadow:none;border-radius:0;font-size:1.35rem}
+ .nb.home.on .ic{background:transparent;transform:none}
+ .nb.on{background:rgba(59,130,246,.13);color:#93c5fd}
+ .ov{align-items:center;justify-content:center;padding:2rem}
+ .sheet{width:min(760px,calc(100vw - 3rem));max-width:760px;border-radius:22px;padding:1.6rem;max-height:88vh;transform:translateY(18px)}
+ .ov.on .sheet{transform:none}
+ .meal-add-fab{right:32px;bottom:28px}
+}
+@media (min-width: 900px) and (max-width: 1150px){.app{grid-template-columns:190px minmax(0,1fr)}.view{padding-left:1.3rem;padding-right:1.3rem}#v-board{padding-left:1.3rem;padding-right:1.3rem}#v-board>.dash{margin-left:-1.3rem;margin-right:-1.3rem;padding-left:1.3rem;padding-right:1.3rem}}
+@media (max-width: 899px){.app{max-width:480px}.view{width:100%}}
 </style><link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0e17">
 </head><body>
@@ -156,7 +206,7 @@ nav .nb{min-height:48px;position:relative;z-index:81;}
 <label class="cc" data-k="hot"><input type="checkbox" id="hot"><span>🔥 Température chaude</span></label>
 <label class="cc" data-k="cold"><input type="checkbox" id="cold"><span>❄️ Température froide</span></label>
 </div><div class="tip" id="tip"></div></div></div></div>
-<nav><button type="button" class="nb" data-t="recup" onclick="window.perfmasterNavigate && window.perfmasterNavigate('recup')"><span class="ic">💤</span>Récup</button><button type="button" class="nb" data-t="course" onclick="window.perfmasterNavigate && window.perfmasterNavigate('course')"><span class="ic">🏁</span>Course</button><button type="button" class="nb home on" data-t="home" onclick="window.perfmasterNavigate && window.perfmasterNavigate('home')"><span class="ic">🏠</span>Accueil</button><button type="button" class="nb" data-t="board" onclick="window.perfmasterNavigate && window.perfmasterNavigate('board')"><span class="ic">📊</span>Tableau de bord</button><button type="button" class="nb" data-t="cal" onclick="window.perfmasterNavigate && window.perfmasterNavigate('cal')"><span class="ic">📅</span>Calendrier</button></nav>
+<nav><button type="button" class="nb" data-t="recup"><span class="ic">💤</span>Récup</button><button type="button" class="nb" data-t="course"><span class="ic">🏁</span>Course</button><button type="button" class="nb home on" data-t="home"><span class="ic">🏠</span>Accueil</button><button type="button" class="nb" data-t="board"><span class="ic">📊</span>Tableau de bord</button><button type="button" class="nb" data-t="cal"><span class="ic">📅</span>Calendrier</button></nav>
 <div class="ov" id="ov"><div class="sheet" id="sh"></div></div><div class="toast" id="ts"></div><button type="button" class="meal-add-fab" id="mealAddFab" aria-label="Ajouter un repas" title="Ajouter un repas" onclick="addCustomMealUI()">＋</button>
 <datalist id="fl"></datalist><div class="auth" id="auth"></div>
 <script>
@@ -1113,6 +1163,24 @@ function enRender(P,lg,mode,now){const base=P.NE/1440,cl=x=>Math.max(0,Math.min(
  const live=mode=='today'?got(now)-exp(now):mode=='past'?A[72][1]:0,end=mode=='past'?A[72][1]:Q[72][1],vs=A.concat(Q).map(p=>p[1]),mn=Math.min(...vs,0),mx=Math.max(...vs,0),X=t=>10+t/1440*300,Y=v=>130-(v-mn)/(mx-mn||1)*120,
  ln=(a,f,c,d)=>`<polyline fill='none' stroke='${c}' stroke-width='2.5' ${d?`stroke-dasharray='5 4'`:''} points='${a.filter(p=>f(p[0])).map(p=>X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join(' ')}'/>`;
  $('en').innerHTML=`<div class='dt'><span>⚡ Énergie en direct</span><span style='color:var(--g)'>${mode=='future'?'—':sg(live)+' kcal'}</span></div><svg viewBox='0 0 320 150' style='width:100%;background:var(--bg);border-radius:14px'><line x1='10' x2='310' y1='${Y(0)}' y2='${Y(0)}' stroke='#3b4a63' stroke-dasharray='3 3'/>`+(mode=='past'?'':ln(Q,t=>mode=='future'||t>=now-20,'#6b7280',1))+(mode=='future'?'':ln(A,t=>mode=='past'||t<=now,'#3b82f6'))+(mode=='today'?`<line x1='${X(now)}' x2='${X(now)}' y1='5' y2='135' stroke='#10b981'/>`:'')+[0,6,12,18,24].map(h=>`<text x='${X(h*60)}' y='147' fill='#6b7280' font-size='9' text-anchor='middle'>${h}h</text>`).join('')+`</svg><div class='mg' style='grid-template-columns:1fr 1fr 1fr;margin-top:.6rem'><div class='mp'><div class='mv'>${P.EE}</div><div class='ml'>Dépense estimée</div></div><div class='mp'><div class='mv' style='color:var(--cy)'>${sg(end)}</div><div class='ml'>Bilan fin de journée (mangé − dépensé)</div></div><div class='mp'><div class='mv' style='color:var(--o)'>${Math.round(P.EE-P.NE)}</div><div class='ml'>Dont sortie (kcal)</div></div></div><div class='ex'>Bilan prévisionnel = calories des repas enregistrés + repas prévus non enregistrés − dépense estimée. La dépense est estimée séance par séance selon le sport, la durée, l’intensité et les données de vitesse ou de puissance disponibles. Négatif = déficit énergétique ; proche de 0 = équilibre. En perte de poids, déficit cible ≈ 300 kcal ; en prise de masse, surplus cible ≈ 250 kcal.</div>`}
+function coachAnalysis(P){
+ const selectedDay=$('day').value,allDays=Object.keys(WELL_BY_DAY||{}).sort(),rows=allDays.slice(-7).map(k=>WELL_BY_DAY[k]||{}),hist=allDays.filter(k=>k!==selectedDay).slice(-7).map(k=>WELL_BY_DAY[k]||{});
+ const avg=(key)=>{const a=hist.map(x=>Number(x[key])).filter(x=>Number.isFinite(x)&&x>0);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null};
+ const hrvBase=avg('hrv'),rhrBase=avg('rhr'),hrvNow=Number(WELL.hrv)||0,rhrNow=Number(WELL.rhr)||0,sleep=Number(WELL.sleep)||0;
+ const hrvDrop=hrvBase&&hrvNow?(hrvNow-hrvBase)/hrvBase*100:null,rhrRise=rhrBase&&rhrNow?rhrNow-rhrBase:null;
+ const notes=[];let status='Données à compléter',tone='var(--cy)';
+ if(hrvDrop!==null&&rhrRise!==null&&hrvDrop<=-8&&rhrRise>=5){status='Signaux de fatigue à surveiller';tone='var(--o)';notes.push('Votre VFC est nettement sous votre moyenne récente et votre fréquence cardiaque au repos est plus élevée. Si vous vous sentez aussi fatigué, remplacez la séance intense par du facile ou du repos.');}
+ else if(hrvDrop!==null&&hrvDrop<=-10){status='VFC en baisse';tone='var(--o)';notes.push('La VFC est plus basse que votre moyenne récente. Une mesure isolée ne suffit pas pour conclure : vérifiez le sommeil, le stress et vos sensations avant de décider.');}
+ else if(rhrRise!==null&&rhrRise>=7){status='FC au repos élevée';tone='var(--o)';notes.push('La fréquence cardiaque au repos dépasse votre moyenne récente. Vérifiez hydratation, sommeil, stress et symptômes; évitez de forcer si vous ne vous sentez pas normal.');}
+ else if(hrvDrop!==null||rhrRise!==null){status='Signaux plutôt stables';notes.push('Les indicateurs disponibles ne montrent pas de signal combiné marqué. Confirmez toujours avec vos sensations et la qualité de votre sommeil.');}
+ if(sleep>0&&sleep<7){tone='var(--o)';notes.push('Sommeil court ('+sleep.toFixed(1)+' h) : priorisez une nuit plus longue et évitez d’ajouter de l’intensité si la fatigue persiste.');}
+ else if(sleep>=7.5)notes.push('Sommeil récent : '+sleep.toFixed(1)+' h. Gardez une heure de coucher régulière pour soutenir la récupération.');
+ const sessions=P.sessions||[],hard=Number(P.TSS)>=100||sessions.some(x=>Number(x.dur)>=2.5),dur=sessions.reduce((n,x)=>n+(Number(x.dur)||0),0);
+ if(dur>=2||hard){notes.push('Après cette charge, ne retardez pas le ravitaillement : glucides adaptés à la durée et à l’intensité, plus environ '+Math.round(.3*P.kg)+' g de protéines dans la période de récupération.');}
+ else if(!dur)notes.push('Journée sans séance enregistrée : gardez les protéines réparties sur la journée et adaptez les glucides à votre activité réelle, sans chercher à compenser par une restriction excessive.');
+ if(!rows.length||(!hrvNow&&!rhrNow&&!sleep)){status='Connectez vos données de récupération';tone='var(--m)';notes.unshift('Je ne dispose pas encore de métriques récentes fiables. Le coach ne va pas inventer votre état de forme : synchronisez vos données ou utilisez vos sensations.');}
+ return `<div class='coach-panel'><div class='ch'><div><div class='cn'>🤖 Coach PERFMASTER</div><div class='ex'>Analyse du jour · basée sur les données disponibles</div></div><div class='ck' style='color:${tone}'>${status}</div></div>${notes.slice(0,4).map((x,i)=>`<div class='coach-note'><span>${i+1}</span><div>${x}</div></div>`).join('')}<div class='ex coach-foot'>La VFC, la FC au repos et le sommeil varient naturellement. Ces indicateurs ne posent pas de diagnostic et ne remplacent pas vos sensations.</div></div>`;
+}
 function recup(P){const kg=P.kg,E=P.E,hot=$('hot').checked,W=tm($('wake').value),bed=(W-510+1440)%1440,bt=bed<720?bed+1440:bed,S=[];
  if(P.dur){const cH=Math.round(kg*(P.dur>=2.5||P.hasQ?1.2:1)),pr=Math.round(.3*kg),r=P.ev.find(e=>e.rec&&e.t>=E);
   S.push([E,'⚖️','Pesée et hydratation','Pèse-toi avant/après : bois 150 % du poids perdu (≈ 1,5 L par kg). '+(hot?'Chaleur : ajoute 500–700 mg de sodium par litre.':'Ajoute une pincée de sel ou une boisson d’électrolytes.')],[E+10,'🥤','Glucides + protéines (0–30 min)',`≈ ${cH} g de glucides + ${pr} g de protéines${r?' — prévu à '+fm(r.t):''}.`],[E+30,'🦵','Retour au calme','10–15 min de marche, mobilité douce, jambes surélevées 10 min.'],[E+100,'🍽️','Repas complet','Dans les 2 h : féculents + protéines maigres + légumes colorés.']);
@@ -1122,7 +1190,7 @@ function recup(P){const kg=P.kg,E=P.E,hot=$('hot').checked,W=tm($('wake').value)
  if($('caf').checked&&P.dur)S.push([bt-360,'☕','Dernière caféine','Aucune caféine dans les 6 h avant le coucher.']);
  S.push([bt,'😴','Sommeil',`Au lit vers ${fm(bed)} pour 8 h 30 avant ${fm(W)}.`]);
  S.sort((a,b)=>a[0]-b[0]);const d=$('day').value,metricRows=Object.keys(WELL_BY_DAY||{}).sort().slice(-7).reverse().map(k=>{const v=WELL_BY_DAY[k]||{};return `<div class='lg'><span>${new Date(k+'T12:00:00').toLocaleDateString('fr-CA',{weekday:'short',day:'numeric',month:'short'})}</span><b>HRV ${v.hrv?Math.round(v.hrv)+' ms':'—'} · FC ${v.rhr?Math.round(v.rhr)+' bpm':'—'} · Sommeil ${v.sleep?Number(v.sleep).toFixed(1)+' h':'—'}</b></div>`}).join('');
- $('v-recup').innerHTML=`<div class='hm'><div class='dtl'>Étapes de récupération</div><div class='card c-p'><div class='cn'>📊 Métriques par jour · ${d}</div><div class='tg'><span>HRV ${WELL.hrv?Math.round(WELL.hrv)+' ms':'—'}</span><span>FC repos ${WELL.rhr?Math.round(WELL.rhr)+' bpm':'—'}</span><span>Sommeil ${WELL.sleep?Number(WELL.sleep).toFixed(1)+' h':'—'}</span></div><div class='hd'>7 derniers jours synchronisés</div>${metricRows||'<div class="ex">Aucune métrique synchronisée pour le moment.</div>'}</div>`+S.map((s,i)=>`<div class='card c-p st ${REC[d+i]?'ok':''}' data-r='${i}'><div class='ch'><div class='cn'>${s[1]} ${s[2]}</div><div class='ck'>${fm(s[0])}</div></div><div class='ex'>${s[3]}</div></div>`).join('')+`<div class='ex'>Touche une étape pour la cocher.</div></div>`}
+ $('v-recup').innerHTML=`<div class='hm'><div class='dtl'>Étapes de récupération</div><div class='card c-p'><div class='cn'>📊 Métriques par jour · ${d}</div><div class='tg'><span>HRV ${WELL.hrv?Math.round(WELL.hrv)+' ms':'—'}</span><span>FC repos ${WELL.rhr?Math.round(WELL.rhr)+' bpm':'—'}</span><span>Sommeil ${WELL.sleep?Number(WELL.sleep).toFixed(1)+' h':'—'}</span></div><div class='hd'>7 derniers jours synchronisés</div>${metricRows||'<div class="ex">Aucune métrique synchronisée pour le moment.</div>'}</div>${coachAnalysis(P)}`+S.map((s,i)=>`<div class='card c-p st ${REC[d+i]?'ok':''}' data-r='${i}'><div class='ch'><div class='cn'>${s[1]} ${s[2]}</div><div class='ck'>${fm(s[0])}</div></div><div class='ex'>${s[3]}</div></div>`).join('')+`<div class='ex'>Touche une étape pour la cocher.</div></div>`}
 function cal(){const sel=$('day').value,y=CM.getFullYear(),mo=CM.getMonth(),off=(new Date(y,mo,1).getDay()+6)%7,nd=new Date(y,mo+1,0).getDate(),td=iso(new Date()),J=['L','M','M','J','V','S','D'];
  let g=J.map(x=>`<div class='dh'>${x}</div>`).join('')+'<div></div>'.repeat(off);
  for(let d=1;d<=nd;d++){const k=iso(new Date(y,mo,d)),hasSessions=sessionList(k).some(x=>x&&x.cfg&&Number(x.cfg.dur)>0),Pday=(PLANS[k]||hasSessions)?planFor(k):null,L=Pday?dayLevel(k,Pday):null;g+=`<div class='cl ${k==sel?'sel':''} ${k==td?'td':''}' data-k='${k}'>${d}${(()=>{const q=raceCtx(k);return q.day?'<small>🏁</small>':q.load?'<small>🍝</small>':''})()}<i style='background:${L?L[1]:'transparent'}'></i></div>`}
@@ -1178,22 +1246,13 @@ window.addEventListener('unhandledrejection',e=>{console.error('Action PERFMASTE
   if(!t)return null;
   return t;
  }
- document.addEventListener('pointerup',function(e){
-  const b=navTarget(e);if(!b)return;
-  lastPointer=Date.now();e.preventDefault();e.stopPropagation();
-  if(e.stopImmediatePropagation)e.stopImmediatePropagation();
-  navigate(b.dataset.t);
- },true);
+ // Une seule activation native par clic : pas de pointerup + click concurrents.
+ // Les boutons restent accessibles au clavier grâce à leur sémantique HTML native.
  document.addEventListener('click',function(e){
   const b=navTarget(e);if(!b)return;
-  if(e.detail!==0&&Date.now()-lastPointer<700){e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();return;}
-  e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+  e.preventDefault();e.stopPropagation();
+  if(e.stopImmediatePropagation)e.stopImmediatePropagation();
   navigate(b.dataset.t);
- },true);
- document.addEventListener('keydown',function(e){
-  if(e.key!=='Enter'&&e.key!==' ')return;
-  const b=navTarget(e);if(!b)return;
-  e.preventDefault();navigate(b.dataset.t);
  },true);
 })();
 </script>
