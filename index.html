@@ -909,65 +909,60 @@ function startAutoSyncIv(){
   window.__perfAutoSyncListeners=true;
  }
 }
-async function syncIv(q){if($('pik')){PROF.ikey=$('pik').value.trim();PROF.iid=$('pii').value.trim()||'0'}try{localStorage.setItem('gb27prof',JSON.stringify(PROF))}catch(e){}
- if(!PROF.ikey){if(!q)toast('Ajoute ta clé API Intervals.icu');return}
- const hd={Authorization:'Basic '+btoa('API_KEY:'+PROF.ikey)},b='https://intervals.icu/api/v1/athlete/'+(PROF.iid||0),t=iso(new Date()),g=u=>fetch(b+u,{headers:hd}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()});
- try{const[A,E,Wl]=await Promise.all([g('/activities?oldest='+addD(t,-21)+'&newest='+t),g('/events?category=WORKOUT&oldest='+t+'&newest='+addD(t,28)),g('/wellness?oldest='+addD(t,-30)+'&newest='+t)]);
-  const ftp=+$('ftp').value||280;let n=0;
-  const put=(sec,watts,st,sport,pace,calories,sourceId,isPlanned=false)=>{
-   if(!st||!sec)return;const k=String(st).slice(0,10),rawStart=String(st).slice(11,16),start=/^\d{2}:\d{2}$/.test(rawStart)?rawStart:'09:00',h=Number(sec)/3600;if(!Number.isFinite(h)||h<=0)return;
-   // Normalise l'heure et la durée importées : jamais de secondes/fractions dans l'affichage.
-   const cleanStart=String(start).match(/^(\d{2}):(\d{2})$/)?String(start):'09:00';
-   const roundedHours=Math.round(h*20)/20;
-   const cfg=Object.assign({},DEF,{dur:String(roundedHours),ride:cleanStart,sport:sport||'bike',watts:String(Math.round(Number(watts)||0)),...(pace?{pace:String(pace)}:{}),...(calories>0?{eeOverride:Math.round(Number(calories))}:{})});
-   const list=sessionList(k);let item=list.find(z=>z.sourceId&&String(z.sourceId)===String(sourceId));
-   const mins=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})(?::.*)?$/);return m?Number(m[1])*60+Number(m[2]):null};
-   const normSport=v=>{v=String(v||'').toLowerCase();return /run|course/.test(v)?'run':/strength|weight|muscu/.test(v)?'strength':/swim|natation/.test(v)?'swim':/ski|nordic/.test(v)?'ski':'bike'};
-   const actualMin=mins(cleanStart);
-   if(!item&&!isPlanned){
-    // Une activité réalisée remplace une séance planifiée similaire, même si elle
-    // avait déjà été importée comme événement TrainingPeaks/Intervals.
-    item=list.find(z=>z&&z.cfg&&z.planned!==false&&normSport(z.cfg.sport)===normSport(cfg.sport)&&Math.abs((Number(z.cfg.dur)||0)-roundedHours)<=0.5&&actualMin!==null&&mins(z.cfg.ride)!==null&&Math.abs(mins(z.cfg.ride)-actualMin)<=120);
-    if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sourceId;item.planned=false;item.id=item.id||'iv_'+String(sourceId||k+'_'+cleanStart).replace(/[^a-zA-Z0-9_-]/g,'_');}
-   }
-   if(!item&&isPlanned){
-    // Ne pas réimporter comme planifiée une séance qui existe déjà comme réalisée.
-    const completed=list.find(z=>z&&z.cfg&&z.planned===false&&normSport(z.cfg.sport)===normSport(cfg.sport)&&Math.abs((Number(z.cfg.dur)||0)-roundedHours)<=0.5&&actualMin!==null&&mins(z.cfg.ride)!==null&&Math.abs(mins(z.cfg.ride)-actualMin)<=120);
-    if(completed)return;
-   }
-   if(!item)item=list.find(z=>z.source==='intervals'&&z.cfg&&z.cfg.ride===start&&z.cfg.sport===cfg.sport&&!!z.planned===!!isPlanned);
-   if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sourceId;item.planned=!!isPlanned;}
-   else list.push({id:'iv_'+String(sourceId||k+'_'+start).replace(/[^a-zA-Z0-9_-]/g,'_'),cfg,source:'intervals',sourceId:sourceId||'',planned:!!isPlanned});
-   if(!isPlanned&&item){
-    for(let j=list.length-1;j>=0;j--){const z=list[j];if(z!==item&&z&&z.cfg&&z.planned!==false&&normSport(z.cfg.sport)===normSport(cfg.sport)&&Math.abs((Number(z.cfg.dur)||0)-roundedHours)<=0.5&&actualMin!==null&&mins(z.cfg.ride)!==null&&Math.abs(mins(z.cfg.ride)-actualMin)<=120)list.splice(j,1);}
-   }
-   SESSIONS[k]=list;
-   if(!PLANS[k]||!Number(PLANS[k].dur))PLANS[k]=Object.assign({},cfg);
-   n++;
-  };
-  (A||[]).filter(x=>/ride|bike|cycl|run|running|strength|weight|swim|pool|ski|nordic/i.test(x.type||'')).forEach(x=>{
-   const typ=/run|running/i.test(x.type||'')?'run':/strength|weight/i.test(x.type||'')?'strength':/swim|pool/i.test(x.type||'')?'swim':/ski|nordic/i.test(x.type||'')?'ski':'bike';
-   put(x.moving_time,Math.round(x.icu_average_watts||x.average_watts||0),x.start_date_local,typ,x.average_pace||'',x.calories||x.icu_calories||0,'activity_'+(x.id||x.start_date_local),false);
-  });
-  (E||[]).filter(x=>/ride|bike|cycl|run|running|strength|weight|swim|pool|ski|nordic/i.test(x.type||'')).forEach(x=>{
-   const typ=/run|running/i.test(x.type||'')?'run':/strength|weight/i.test(x.type||'')?'strength':/swim|pool/i.test(x.type||'')?'swim':/ski|nordic/i.test(x.type||'')?'ski':'bike';
-   const sec=Number(x.moving_time||x.duration||0);if(!sec)return;
-   put(sec,x.icu_intensity?Math.round(ftp*x.icu_intensity/100):0,x.start_date_local||x.start_date,typ,x.average_pace||'',x.calories||0,'event_'+(x.id||x.start_date_local||x.start_date),true);
-  });
-  const validWell=(Wl||[]).filter(x=>x&&(x.hrv||x.sleepSecs||x.restingHR||x.restingHr));
-  if(validWell.length){
-   const av=validWell.map(x=>Number(x.hrv)).filter(x=>x>0),avg=av.length?av.reduce((a,b)=>a+b,0)/av.length:0;
-   validWell.forEach(x=>{
-    const date=String(x.id||x.date||x.day||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
-    const hrv=Number(x.hrv)||0,rhr=Number(x.restingHR||x.restingHr)||0,sleepSecs=Number(x.sleepSecs||x.sleep_seconds)||0,sl=sleepSecs/3600,tp=[];
-    if(sl&&sl<6.5)tp.push(`Sommeil court (${sl.toFixed(1)} h) : priorité récupération, ne saute aucun repas.`);
-    if(hrv&&avg&&hrv<avg*.9)tp.push(`HRV basse (${Math.round(hrv)} vs ${Math.round(avg)} ms de moyenne synchronisée : garde la séance légère.`);
-    WELL_BY_DAY[date]={date,hrv:hrv||null,rhr:rhr||null,sleep:sl||null,tip:tp.join(' '),source:'Intervals.icu'};
-   });
-   WELL=WELL_BY_DAY[$('day').value]||WELL;
-   /* Les métriques seront enregistrées avec les séances dans une seule transaction. */
-  }
-  persistBatch([['gb27sessions',JSON.stringify(SESSIONS)],['gb27plans',JSON.stringify(PLANS)],['gb27wellDays',JSON.stringify(WELL_BY_DAY)],['gb27well',JSON.stringify(WELL)]]);loadDay();render();cal();if(!q)toast(n+' séance(s) synchronisée(s)')}catch(x){console.error(x);if(!q)toast('Synchronisation impossible : vérifiez la clé API et la connexion.')}}
+async function syncIv(silent=false){
+ if($('pik')){PROF.ikey=$('pik').value.trim();PROF.iid=$('pii').value.trim()||'0'}
+ try{localStorage.setItem('gb27prof',JSON.stringify(PROF))}catch(e){console.error('Intervals: impossible d’enregistrer le profil',e)}
+ if(!PROF.ikey){const msg='Clé API Intervals.icu manquante. Ouvrez Paramètres > Connexions et enregistrez votre clé.';if(!silent)toast(msg);if($('pinfo'))$('pinfo').textContent=msg;return false}
+ const athlete=String(PROF.iid||'0').trim()||'0';
+ if(!/^(0|i?\d+)$/.test(athlete)){const msg='Identifiant athlète invalide. Utilisez 0 pour votre compte ou votre ID Intervals.icu.';if(!silent)toast(msg);if($('pinfo'))$('pinfo').textContent=msg;return false}
+ let auth;try{auth='Basic '+btoa('API_KEY:'+PROF.ikey)}catch(e){const msg='La clé API contient des caractères non pris en charge. Copiez-la à nouveau depuis Intervals.icu.';if(!silent)toast(msg);if($('pinfo'))$('pinfo').textContent=msg;return false}
+ const base='https://intervals.icu/api/v1/athlete/'+encodeURIComponent(athlete),today=iso(new Date());
+ const apiGet=async(path,label)=>{
+  let response;
+  try{response=await fetch(base+path,{method:'GET',headers:{Authorization:auth,Accept:'application/json'}})}
+  catch(e){const err=new Error(label+': connexion impossible (réseau ou CORS). Vérifiez l’accès Internet et le domaine de l’application.');err.cause=e;throw err}
+  const body=await response.text();
+  if(!response.ok){let detail=body;try{const j=JSON.parse(body);detail=j.error||j.message||j.status||body}catch(e){};const hint=response.status===401?'Clé API refusée (401). Vérifiez la clé personnelle.':response.status===403?'Accès refusé (403). Vérifiez l’ID athlète et les autorisations.':response.status===429?'Limite de requêtes atteinte (429). Réessayez plus tard.':'';throw new Error(label+' — HTTP '+response.status+'. '+hint+(detail?' Détail : '+String(detail).slice(0,180):''))}
+  try{return body?JSON.parse(body):[]}catch(e){throw new Error(label+' : réponse reçue mais JSON invalide.')}
+ };
+ const reqs=await Promise.allSettled([
+  apiGet('/activities?oldest='+addD(today,-21)+'&newest='+today,'Activités'),
+  apiGet('/events?category=WORKOUT&oldest='+today+'&newest='+addD(today,28),'Entraînements planifiés'),
+  apiGet('/wellness?oldest='+addD(today,-30)+'&newest='+today,'Données de récupération')
+ ]);
+ const labels=['Activités','Entraînements planifiés','Données de récupération'];
+ const errors=reqs.map((r,i)=>r.status==='rejected'?labels[i]+': '+(r.reason?.message||String(r.reason)):null).filter(Boolean);
+ if(reqs[0].status==='rejected'){
+  const msg=errors.join(' | ');console.error('Échec Intervals.icu:',reqs.map((r,i)=>({endpoint:labels[i],status:r.status,error:r.status==='rejected'?r.reason:null})));
+  if($('pinfo'))$('pinfo').textContent=msg;if(!silent)toast(msg.slice(0,240));return false
+ }
+ const A=Array.isArray(reqs[0].value)?reqs[0].value:[],E=reqs[1].status==='fulfilled'&&Array.isArray(reqs[1].value)?reqs[1].value:[],Wl=reqs[2].status==='fulfilled'&&Array.isArray(reqs[2].value)?reqs[2].value:[];
+ const ftp=+$('ftp')?.value||280;let n=0,activityCount=0,eventCount=0,wellCount=0;
+ const put=(sec,watts,st,sport,pace,calories,sourceId,isPlanned=false)=>{
+  if(!st||!sec)return;const k=String(st).slice(0,10),rawStart=String(st).slice(11,16),start=/^\d{2}:\d{2}$/.test(rawStart)?rawStart:'09:00',h=Number(sec)/3600;if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||!Number.isFinite(h)||h<=0)return;
+  const roundedHours=Math.round(h*20)/20;
+  const cfg=Object.assign({},DEF,{dur:String(roundedHours),ride:start,sport:sport||'bike',watts:String(Math.round(Number(watts)||0)),...(pace?{pace:String(pace)}:{}),...(calories>0?{eeOverride:Math.round(Number(calories))}:{})});
+  const list=sessionList(k);let item=list.find(z=>z&&z.sourceId&&String(z.sourceId)===String(sourceId));
+  const mins=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})(?::.*)?$/);return m?Number(m[1])*60+Number(m[2]):null};
+  const normSport=v=>{v=String(v||'').toLowerCase();return /run|course/.test(v)?'run':/strength|weight|muscu/.test(v)?'strength':/swim|natation/.test(v)?'swim':/ski|nordic/.test(v)?'ski':'bike'};
+  const actualMin=mins(start);
+  if(!item&&!isPlanned){item=list.find(z=>z&&z.cfg&&z.planned!==false&&normSport(z.cfg.sport)===normSport(cfg.sport)&&Math.abs((Number(z.cfg.dur)||0)-roundedHours)<=0.5&&actualMin!==null&&mins(z.cfg.ride)!==null&&Math.abs(mins(z.cfg.ride)-actualMin)<=120);if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sourceId;item.planned=false;item.id=item.id||'iv_'+String(sourceId||k+'_'+start).replace(/[^a-zA-Z0-9_-]/g,'_')}}
+  if(!item&&isPlanned){const completed=list.find(z=>z&&z.cfg&&z.planned===false&&normSport(z.cfg.sport)===normSport(cfg.sport)&&Math.abs((Number(z.cfg.dur)||0)-roundedHours)<=0.5&&actualMin!==null&&mins(z.cfg.ride)!==null&&Math.abs(mins(z.cfg.ride)-actualMin)<=120);if(completed)return}
+  if(!item)item=list.find(z=>z&&z.source==='intervals'&&z.cfg&&z.cfg.ride===start&&z.cfg.sport===cfg.sport&&!!z.planned===!!isPlanned);
+  if(item){item.cfg=cfg;item.source='intervals';item.sourceId=sourceId;item.planned=!!isPlanned}else list.push({id:'iv_'+String(sourceId||k+'_'+start).replace(/[^a-zA-Z0-9_-]/g,'_'),cfg,source:'intervals',sourceId:sourceId||'',planned:!!isPlanned});
+  if(!isPlanned&&item){for(let j=list.length-1;j>=0;j--){const z=list[j];if(z!==item&&z&&z.cfg&&z.planned!==false&&normSport(z.cfg.sport)===normSport(cfg.sport)&&Math.abs((Number(z.cfg.dur)||0)-roundedHours)<=0.5&&actualMin!==null&&mins(z.cfg.ride)!==null&&Math.abs(mins(z.cfg.ride)-actualMin)<=120)list.splice(j,1)}}
+  SESSIONS[k]=list;if(!PLANS[k]||!Number(PLANS[k].dur))PLANS[k]=Object.assign({},cfg);n++;if(isPlanned)eventCount++;else activityCount++;
+ };
+ A.filter(x=>/ride|bike|cycl|run|running|strength|weight|swim|pool|ski|nordic/i.test(x.type||'')).forEach(x=>{const typ=/run|running/i.test(x.type||'')?'run':/strength|weight/i.test(x.type||'')?'strength':/swim|pool/i.test(x.type||'')?'swim':/ski|nordic/i.test(x.type||'')?'ski':'bike';put(x.moving_time,Math.round(x.icu_average_watts||x.average_watts||0),x.start_date_local,typ,x.average_pace||'',x.calories||x.icu_calories||0,'activity_'+(x.id||x.start_date_local),false)});
+ E.filter(x=>/ride|bike|cycl|run|running|strength|weight|swim|pool|ski|nordic/i.test(x.type||'')).forEach(x=>{const typ=/run|running/i.test(x.type||'')?'run':/strength|weight/i.test(x.type||'')?'strength':/swim|pool/i.test(x.type||'')?'swim':/ski|nordic/i.test(x.type||'')?'ski':'bike';const sec=Number(x.moving_time||x.duration||x.workout_doc?.duration||0);if(!sec)return;put(sec,x.icu_intensity?Math.round(ftp*x.icu_intensity/100):0,x.start_date_local||x.start_date,typ,x.average_pace||'',x.calories||0,'event_'+(x.id||x.start_date_local||x.start_date),true)});
+ if(reqs[2].status==='fulfilled'){
+  const validWell=Wl.filter(x=>x&&(x.hrv||x.sleepSecs||x.restingHR||x.restingHr));if(validWell.length){const av=validWell.map(x=>Number(x.hrv)).filter(x=>x>0),avg=av.length?av.reduce((a,b)=>a+b,0)/av.length:0;validWell.forEach(x=>{const date=String(x.id||x.date||x.day||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;const hrv=Number(x.hrv)||0,rhr=Number(x.restingHR||x.restingHr)||0,sleepSecs=Number(x.sleepSecs||x.sleep_seconds)||0,sl=sleepSecs/3600,tp=[];if(sl&&sl<6.5)tp.push(`Sommeil court (${sl.toFixed(1)} h) : priorité récupération, ne saute aucun repas.`);if(hrv&&avg&&hrv<avg*.9)tp.push(`HRV basse (${Math.round(hrv)} vs ${Math.round(avg)} ms de moyenne synchronisée : garde la séance légère.`);WELL_BY_DAY[date]={date,hrv:hrv||null,rhr:rhr||null,sleep:sl||null,tip:tp.join(' '),source:'Intervals.icu'};wellCount++});WELL=WELL_BY_DAY[$('day')?.value]||WELL}
+ }
+ persistBatch([['gb27sessions',JSON.stringify(SESSIONS)],['gb27plans',JSON.stringify(PLANS)],['gb27wellDays',JSON.stringify(WELL_BY_DAY)],['gb27well',JSON.stringify(WELL)]]);loadDay();render();cal();
+ const summary=`Intervals.icu : ${activityCount} activité(s), ${eventCount} séance(s) planifiée(s), ${wellCount} jour(s) de récupération importé(s).`;
+ if(errors.length){console.warn('Synchronisation partielle Intervals.icu',errors);if($('pinfo'))$('pinfo').textContent=summary+' Attention : '+errors.join(' | ');if(!silent)toast(summary+' Voir le détail dans Connexions.')}else{if($('pinfo'))$('pinfo').textContent=summary;if(!silent)toast(summary)}
+ return{activities:activityCount,planned:eventCount,wellness:wellCount,errors};
+}
 function shift(n){const d=new Date($('day').value+'T12:00');d.setDate(d.getDate()+n);$('day').value=iso(d);loadDay();render()}
 function dl(){const k=$('day').value,d=new Date(k+'T12:00'),df=Math.round((d-new Date(iso(new Date())+'T12:00'))/864e5),r=df==0?'Aujourd’hui':df==-1?'Hier':df==1?'Demain':'';$('dlab').textContent=(r?r+' · ':'')+d.toLocaleDateString('fr-CA',{weekday:'short',day:'numeric',month:'short'})}
 function enRender(P,lg,mode,now){const base=P.NE/1440,cl=x=>Math.max(0,Math.min(1,x)),sessions=P.sessions||[],exerciseAt=t=>sessions.reduce((sum,s)=>{const st=tm(s.start),en=st+s.dur*60,portion=en<=st?0:cl((t-st)/(en-st));return sum+(Number(s.netKcal)||0)*portion},0),exp=t=>base*t+exerciseAt(t),at=(m,t)=>m=='ride'?cl((t-P.R)/(P.E-P.R)):((P.ev.find(x=>x.id==m)||{t:9999}).t<=t?1:0),got=t=>lg.reduce((n,l)=>n+kcalOf(l)*at(l.m,t),0),
