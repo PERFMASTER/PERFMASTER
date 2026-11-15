@@ -1,0 +1,36 @@
+PERFMASTER — mise à jour stabilisée
+Build : 2026-11-15-stabilisee-r2
+
+CONTENU
+- index.html : base PERFMASTER disponible dans cette session, en conservant ses fonctions et ses clés de stockage locales.
+- service-worker.js : renouvellement du cache PWA et stratégie réseau d’abord pour la page; les appels API et données privées ne sont pas mis en cache.
+
+CORRECTIONS INTÉGRÉES
+- Répartition des glucides, protéines et lipides par proportions entre les repas; les écarts d’arrondi sont distribués sur plusieurs repas au lieu d’être ajoutés au dernier.
+- La valeur habituelle de glucides au déjeuner est traitée comme une préférence plafonnée à 40 % des glucides alimentaires de la journée.
+- Les cibles fixes pré/post-entraînement et déjeuner ne peuvent plus absorber plus de 75 % du budget glucidique lorsqu’il reste d’autres repas; le solde est réparti sur les repas flexibles.
+- Suppression d’un repas enregistrée en transaction avec le journal alimentaire associé : un échec d’écriture ne laisse pas une suppression partielle.
+- Conservation des correctifs déjà présents dans le fichier PERFMASTER disponible : sauvegarde locale transactionnelle, protection contre l’échec de stockage, fermeture fiable des fenêtres, synchronisation Intervals.icu avec détails d’erreurs et déclencheurs automatiques.
+
+FONCTIONS CONSERVÉES DANS LE CODE
+- Recherche nutritionnelle FCÉN, USDA (via le proxy configuré) et Open Food Facts.
+- Recherche d’aliments, scan/saisie de code-barres, choix de quantité et ajout au repas.
+- Préférences alimentaires, aliments à éviter, régénération des repas, repas personnalisés.
+- Calendrier multisport, séances multiples par jour, calcul de dépense et ajustement des repas.
+- Import des activités, séances planifiées et données de bien-être disponibles via Intervals.icu.
+
+LIMITES À NE PAS CONFONDRE AVEC DES FONCTIONS VALIDÉES
+- La connexion réelle à votre compte Intervals.icu n’a pas pu être testée dans cet environnement. La clé et les autorisations de votre compte doivent être validées dans l’application.
+- Garmin et WHOOP ne disposent pas ici d’une connexion OAuth directe. Les données qu’ils transmettent à Intervals.icu peuvent être récupérées via cette intégration, selon ce qu’Intervals reçoit.
+- Les comptes locaux et la réinitialisation locale du mot de passe sont présents; il n’y a pas de récupération par courriel ni de stockage serveur/synchronisation entre appareils. TrainingPeaks OAuth et les connexions OAuth directes Garmin/WHOOP ne sont pas intégrés. Ces éléments nécessitent un backend et des accès développeur; aucun abonnement n’est activé.
+
+INSTALLATION SANS PERTE DES DONNÉES
+1. Conservez une copie du déploiement actuel et exportez une sauvegarde depuis PERFMASTER.
+2. Déployez index.html et service-worker.js à la racine du même site Cloudflare Pages.
+3. Ne remplacez pas manifest.webmanifest, les icônes, le logo ni vos autres ressources; gardez les fichiers actuels de votre site.
+4. Gardez exactement le même domaine et la même origine. Ne désinstallez pas la PWA, ne videz pas le stockage, et ne supprimez aucune donnée locale.
+
+VÉRIFICATIONS EFFECTUÉES ICI
+- Syntaxe JavaScript : vérifiée avec Node.js.
+- Tests simulés : jours de repos, vélo, course et musculation; somme des glucides des repas égale à la cible alimentaire quotidienne dans les scénarios testés; aucun repas flexible n’est laissé à zéro dans le scénario de concentration qui a motivé le correctif.
+- Non vérifié ici : caméra physique, déploiement Cloudflare, API réelle Intervals.icu, clés externes, authentification réelle, appareil Garmin/WHOOP.

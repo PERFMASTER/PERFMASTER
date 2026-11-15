@@ -1,68 +1,64 @@
-/* PERFMASTER — service worker de mise à jour et cache sécurisé */
-const CACHE_PREFIX = 'perfmaster-cache-';
-const CACHE_VERSION = '2026-11-11-v2';
-const CURRENT_CACHE = CACHE_PREFIX + CACHE_VERSION;
+/* PERFMASTER — service worker stable, sans cache des réponses privées/API. */
+const CACHE_NAME = 'perfmaster-app-2026-11-15-r2';
+const CACHE_PREFIX = 'perfmaster-app-';
+const SHELL_URLS = ['./', './index.html'];
 
-self.addEventListener('install', (event) => {
-  // Active immédiatement la nouvelle version pour remplacer l'ancien worker.
-  self.skipWaiting();
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    // Une ressource manquante ne doit pas empêcher l'installation du service worker.
+    await Promise.allSettled(SHELL_URLS.map(async path => {
+      const response = await fetch(path, { cache: 'reload' });
+      if (response.ok) await cache.put(path, response.clone());
+    }));
+    await self.skipWaiting();
+  })());
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', event => {
   event.waitUntil((async () => {
-    const names = await caches.keys();
-    await Promise.all(
-      names
-        .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CURRENT_CACHE)
-        .map((name) => caches.delete(name))
-    );
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+      .map(key => caches.delete(key)));
     await self.clients.claim();
   })());
 });
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
   const request = event.request;
+  if (request.method !== 'GET') return;
+
   const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return; // Ne met pas en cache les API externes/authentifiées.
 
-  // Ne touche ni aux requêtes externes, ni aux API, ni aux écritures.
-  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-
-  // Toujours demander la dernière page HTML au serveur : évite de garder
-  // une ancienne interface après une mise à jour du site.
-  if (request.mode === 'navigate' || request.destination === 'document') {
+  if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
-        const response = await fetch(request, { cache: 'no-store' });
-        if (response && response.ok) {
-          const cache = await caches.open(CURRENT_CACHE);
-          await cache.put(request, response.clone());
+        const fresh = await fetch(request, { cache: 'no-store' });
+        if (fresh && fresh.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put('./index.html', fresh.clone());
         }
-        return response;
+        return fresh;
       } catch (error) {
-        const cached = await caches.match(request);
-        if (cached) return cached;
-        return new Response('PERFMASTER est temporairement hors ligne. Vérifiez votre connexion.', {
-          status: 503,
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-        });
+        const cache = await caches.open(CACHE_NAME);
+        return (await cache.match('./index.html')) || (await cache.match('./')) || Response.error();
       }
     })());
     return;
   }
 
-  // Pour les ressources locales, privilégie le réseau et conserve une copie
-  // hors ligne sans bloquer les mises à jour.
-  if (['script', 'style', 'image', 'font'].includes(request.destination)) {
+  // Cache uniquement les ressources statiques de même origine, jamais les API.
+  if (/\.(?:png|jpg|jpeg|webp|svg|ico|webmanifest|woff2?)$/i.test(url.pathname)) {
     event.respondWith((async () => {
-      const cached = await caches.match(request);
-      const network = fetch(request).then(async (response) => {
-        if (response && response.ok) {
-          const cache = await caches.open(CURRENT_CACHE);
-          await cache.put(request, response.clone());
-        }
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(request);
+      const update = fetch(request).then(response => {
+        if (response && response.ok) cache.put(request, response.clone());
         return response;
       }).catch(() => null);
-      return (await network) || cached || Response.error();
+      return cached || (await update) || Response.error();
     })());
   }
 });

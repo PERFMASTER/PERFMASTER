@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="fr"><head><meta charset="UTF-8">
+<meta name="perfmaster-build" content="2026-11-15-macro-balance-safe"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>PERFMASTER</title>
 <link rel="icon" type="image/png" sizes="512x512" href="./perfmaster-icon.png">
 <meta name="theme-color" content="#0a0e17">
@@ -288,6 +289,22 @@ function proteinTargetGkg(netExerciseKcal,kg,hasTraining){
  return 2.0;
 }
 
+// Répartit toujours un objectif entier entre les repas sans envoyer tout le reliquat
+// sur le dernier repas. Utilisé par le calcul quotidien et le calcul multi-séances.
+function rebalanceMealTargets(meals,key,target,weightIndex){
+ const list=Array.isArray(meals)?meals:[];
+ if(!list.length)return;
+ const total=Math.max(0,Math.round(Number(target)||0));
+ let weights=list.map(e=>Math.max(0,Number(e&&e[key])||0));
+ let sum=weights.reduce((a,b)=>a+b,0);
+ if(sum<=0){weights=list.map(e=>Math.max(0,Number(WT[e&&e.type]?.[weightIndex])||0));sum=weights.reduce((a,b)=>a+b,0)}
+ if(sum<=0){weights=list.map(()=>1);sum=list.length}
+ const exact=weights.map(w=>total*w/sum),allocated=exact.map(Math.floor);
+ let remaining=total-allocated.reduce((a,b)=>a+b,0);
+ const order=exact.map((v,i)=>({i,frac:v-allocated[i]})).sort((a,b)=>b.frac-a.frac||a.i-b.i);
+ for(let i=0;i<remaining;i++)allocated[order[i%order.length].i]++;
+ list.forEach((e,i)=>{e[key]=allocated[i]});
+}
 function balanceEnergyMacros(energyKcal,intraCarbs,baseCarbs,protein,kg){
  // PERFMASTER: lipides entre 1,3 et 2,0 g/kg/jour. Le haut de la fourchette
  // n'est jamais une cible automatique : les glucides restent prioritaires
@@ -414,23 +431,35 @@ function gen(gd){gd=gd||$('day').value;
  // Le délai est mesuré depuis la première prise pré-séance; les portions sont réparties
  // entre les repas au prorata du temps disponible, sans augmenter le total journalier.
  const fixedCarbs=new Map();
- if(PROF.bkC>0)ev.forEach(e=>{if(e.type==='bk'&&!e.pre)fixedCarbs.set(e,Number(PROF.bkC)||0)});
+ // La quantité habituelle au déjeuner est une préférence, pas un droit de consommer
+ // tout le budget journalier : plafonner à 40 % des glucides alimentaires pour
+ // conserver une vraie répartition sur les autres repas.
+ const breakfastEvents=ev.filter(e=>e.type==='bk'&&!e.pre);
+ if(PROF.bkC>0&&breakfastEvents.length){
+  const breakfastBudget=Math.min(Number(PROF.bkC)||0,offC*(ev.length>1?.4:1));
+  breakfastEvents.forEach(e=>fixedCarbs.set(e,breakfastBudget/breakfastEvents.length));
+ }
  if(!rest){
   const preEvents=ev.filter(e=>e.pre).sort((a,b)=>a.t-b.t);
   if(preEvents.length){const hours=Math.max(1,Math.min(4,Math.round(Math.max(0,(R-preEvents[0].t)/60)*10)/10));const target=Math.min(offC,hours*kg);const weights=preEvents.map(e=>Math.max(.1,(R-e.t)/60)),ws=weights.reduce((a,b)=>a+b,0);preEvents.forEach((e,i)=>fixedCarbs.set(e,target*weights[i]/ws));}
   const postEvent=ev.find(e=>e.type==='rec');
   if(postEvent){const postKg=(dur>2||hasQ||IF>=.85)?1.7:1.0;fixedCarbs.set(postEvent,postKg*kg);}
  }
- // Si les cibles pré/post et le petit-déjeuner personnalisé dépassent le budget,
- // elles sont réduites proportionnellement : le total quotidien ne change jamais.
- const fixedTotal=[...fixedCarbs.values()].reduce((a,b)=>a+Math.max(0,b),0),fixedScale=fixedTotal>offC&&fixedTotal>0?offC/fixedTotal:1;
+ // Les cibles pré/post et le petit-déjeuner personnalisé sont prioritaires,
+ // mais ne doivent jamais monopoliser tous les glucides de la journée.
+ // Lorsqu'il reste d'autres repas, elles sont plafonnées à 75 % du budget :
+ // les 25 % restants sont distribués aux repas flexibles (dont dîner/souper).
+ const fixedTotal=[...fixedCarbs.values()].reduce((a,b)=>a+Math.max(0,b),0);
+ const hasFlexibleMeals=ev.some(e=>!fixedCarbs.has(e));
+ const fixedLimit=offC*(hasFlexibleMeals?.75:1);
+ const fixedScale=fixedTotal>fixedLimit&&fixedTotal>0?fixedLimit/fixedTotal:1;
  for(const [e,v] of fixedCarbs)fixedCarbs.set(e,Math.max(0,v*fixedScale));
  const fc=e=>rest&&!fixedCarbs.has(e)?0:Math.max(0,Number(fixedCarbs.get(e))||0);
  const fx=ev.reduce((n,e)=>n+fc(e),0),remC=Math.max(0,offC-fx),cw=e=>WT[e.type][0],sum=[0,1,2].map(k=>ev.reduce((n,e)=>n+(k==0?(fc(e)>0?0:cw(e)):WT[e.type][k]),0));
  let betDone=null;if($("bet").checked){const c=ev.filter(e=>e.t<=R-90);betDone=(c.length?c:ev.filter(e=>e.t<=R-45)).pop()}
  ev.forEach((e,i)=>{if(!e.custom)e.id="m"+i;const w=WT[e.type];
   e.c=fc(e)>0?Math.round(fc(e)):(sum[0]>0?Math.round(remC*cw(e)/sum[0]):0);e.p=Math.max(sum[1]>0?Math.round(Pt*w[1]/sum[1]):0,e.type=='rec'||e.rec?Math.round(.3*kg):0);e.f=sum[2]>0?Math.round(Ft*w[2]/sum[2]):0;e.kcal=e.c*4+e.p*4+e.f*9;e.bet=e===betDone});
- const balanceMealMacro=(key,target)=>{let delta=Math.round(target)-ev.reduce((n,e)=>n+(Number(e[key])||0),0);for(let i=ev.length-1;i>=0&&delta!==0;i--){const e=ev[i];if(delta>0){e[key]=(Number(e[key])||0)+delta;delta=0}else{const cut=Math.min(Number(e[key])||0,-delta);e[key]=(Number(e[key])||0)-cut;delta+=cut}}};
+ const balanceMealMacro=(key,target)=>rebalanceMealTargets(ev,key,target,{c:0,p:1,f:2}[key]);
  balanceMealMacro('c',offC);balanceMealMacro('p',Pt);balanceMealMacro('f',Ft);
  ev.forEach((e,i)=>{e.kcal=Math.round(e.c*4+e.p*4+e.f*9);const choices=e.custom||CFG.mealSuggestions===false?[]:mealTemplatesFor(e,gd,i);e.opts=choices.map(t=>build(t,{c:e.c,p:e.p,f:e.f},e===betDone));});
  // Retirer les repas supprimés et redistribuer leurs objectifs aux repas restants.
@@ -617,7 +646,7 @@ function applyMultiSessionEnergy(P,dayKey){
  carbs=balanced.carbs;P.macroFeasible=balanced.feasible;
  const fat=balanced.fat;
  // Distribute daily targets proportionally across the generated meals.
- const distribute=(key,total)=>{const weights=P.ev.map(e=>Math.max(0,Number(e[key])||0)),sum=weights.reduce((a,b)=>a+b,0);P.ev.forEach((e,i)=>{e[key]=sum>0?Math.round(total*weights[i]/sum):Math.round(total/Math.max(1,P.ev.length));});};
+ const distribute=(key,total)=>rebalanceMealTargets(P.ev,key,total,{c:0,p:1,f:2}[key]);
  distribute('c',carbs);distribute('p',protein);distribute('f',fat);
  P.ev.forEach((e,i)=>{e.kcal=Math.round(e.c*4+e.p*4+e.f*9);e.opts=CFG.mealSuggestions===false?[]:mealTemplatesFor(e,dayKey,i).map(t=>build(t,{c:e.c,p:e.p,f:e.f},e.bet));});
  P.nutrition72h=ctx72;P.TSS=Math.round(totalTSS);P.intraC=totalIntra;const fuelHours=sessionFuel.reduce((a,x)=>a+(x.rate>0?x.dur:0),0);P.rate=fuelHours>0?Math.round(totalIntra/fuelHours):0;P.sessionFuel=sessionFuel;P.sessions=activeEntries.map((entry,i)=>({id:entry.id,sport:entry.cfg.sport||'bike',start:entry.cfg.ride||'09:30',dur:Number(entry.cfg.dur)||0,netKcal:workoutKcal(entry.cfg)}));
@@ -669,10 +698,17 @@ function closeSheet(){
 }
 const itemsHtml=o=>o.items.map(i=>`• <b>${i.pc?Math.round(i.g/i.pc)+" × ":""}${i.n}</b> — ${i.g} g<br>`).join("");
 function deletePlannedMeal(id){
- const day=$("day").value;let all={};try{all=JSON.parse(localStorage.getItem("gb27deletedMeals")||"{}")}catch(e){}
+ const day=$("day").value;if(!day){toast("Choisis d’abord une journée");return;}
+ let all={};try{all=JSON.parse(localStorage.getItem("gb27deletedMeals")||"{}")}catch(e){}
  all[day]=Array.isArray(all[day])?all[day]:[];if(!all[day].includes(id))all[day].push(id);
- try{localStorage.setItem("gb27deletedMeals",JSON.stringify(all));}catch(e){toast("Impossible de sauvegarder la suppression");return;}
- LOGS[day]=dayLogs().filter(x=>x.m!==id);save();render();closeSheet();toast("Repas supprimé et objectifs redistribués ✓");
+ const oldLogs=Array.isArray(LOGS[day])?LOGS[day]:[];
+ const nextLogs=oldLogs.filter(x=>x.m!==id);
+ const nextAllLogs=Object.assign({},LOGS,{[day]:nextLogs});
+ // Enregistrer ensemble la suppression du repas et les aliments associés.
+ // Si l’une des écritures échoue, les deux anciennes valeurs sont restaurées.
+ try{persistBatch([["gb27deletedMeals",JSON.stringify(all)],["gb27logs",JSON.stringify(nextAllLogs)]]);}
+ catch(err){console.error("Suppression du repas non persistée",err);toast(err&&err.perfmasterQuota?"Stockage plein : repas et journal conservés. Exportez vos données avant toute autre modification.":"Suppression non enregistrée : les données ont été conservées.");return;}
+ LOGS[day]=nextLogs;render();closeSheet();toast("Repas supprimé et objectifs redistribués ✓");
 }
 function logsHtml(m){const l=dayLogs().filter(x=>x.m==m);return l.length?`<div class="hd">Enregistré</div>`+l.map(x=>`<div class="lg"><span>${x.n}<br><small>C ${x.c} · P ${x.p} · F ${x.f} · ${kcalOf(x)} kcal</small></span><button onclick="delLog('${x.id}')">✕</button></div>`).join(""):""}
 const normFood=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
@@ -788,7 +824,7 @@ try{if(!localStorage.getItem('gb27lang'))localStorage.setItem('gb27lang','fr')}c
 let uiTranslationBusy=false;const uiLangObserver=new MutationObserver(()=>{if(uiTranslationBusy)return;uiTranslationBusy=true;try{applyUiTranslations()}finally{uiTranslationBusy=false}});
 function startUiTranslation(){applyUiTranslations();uiLangObserver.observe(document.body,{childList:true,subtree:true,characterData:true})}
 if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',startUiTranslation);else startUiTranslation();
-function openProf(){const p=PROF;openSheet(`<div class='mh'><div class='mt'>⚙️ Profil</div><button class='x' onclick='closeSheet()'>✕</button></div><div class='f full'><label>Langue / Language</label><select id='uiLang' onchange='setUiLanguage(this.value)'><option value='fr'>Français</option><option value='en'>English</option></select></div><div class='fg'><div class='f'><label>Nom</label><input id='pn' value='${p.name||''}'></div><div class='f'><label>Sexe</label><select id='ps'><option value='m' ${p.sex=='m'?'selected':''}>Homme</option><option value='f' ${p.sex=='f'?'selected':''}>Femme</option></select></div><div class='f'><label>Âge</label><input type='number' id='pa' value='${p.age}'></div><div class='f'><label>Taille (cm)</label><input type='number' id='ph' value='${p.h}'></div><div class='f'><label>Poids (kg)</label><input type='number' id='pk' value='${$('kg').value}'></div><div class='f'><label>FTP (W)</label><input type='number' id='pf' value='${$('ftp').value}'></div><div class='f'><label>% gras (optionnel)</label><input type='number' id='pb' value='${p.bf||''}'></div><div class='f'><label>BMR mesuré (optionnel)</label><input type='number' id='pm' value='${p.bmrm||''}'></div><div class='f full'><label>Glucides habituels au déjeuner (g, optionnel)</label><input type='number' id='pbk' value='${p.bkC||''}'></div><div class='f'><label>Heure habituelle du souper</label><input type='time' id='pDinner' value='${CFG.dinnerTime||'19:15'}'></div><div class='f'><label>Heure habituelle du coucher</label><input type='time' id='pBed' value='${CFG.bedTime||'22:30'}'></div><div class='f full'><label>Activité hors vélo</label><select id='pp'>${[[1.3,'Sédentaire (bureau)'],[1.4,'Modérée'],[1.5,'Très active']].map(o=>`<option value='${o[0]}' ${p.pal==o[0]?'selected':''}>${o[1]} ×${o[0]}</option>`).join('')}</select></div></div><div class='f full' style='margin:.7rem 0'><label class='cc'><input type='checkbox' id='pMealSuggestions' ${CFG.mealSuggestions===false?'':'checked'} style='width:auto'><span>Afficher les suggestions de repas</span></label></div><div class='hd'>Connexions aux plateformes</div>
+function openProf(){const p=PROF;openSheet(`<div class='mh'><div class='mt'>⚙️ Profil</div><button class='x' onclick='closeSheet()'>✕</button></div><div class='f full'><label>Langue / Language</label><select id='uiLang' onchange='setUiLanguage(this.value)'><option value='fr'>Français</option><option value='en'>English</option></select></div><div class='fg'><div class='f'><label>Nom</label><input id='pn' value='${p.name||''}'></div><div class='f'><label>Sexe</label><select id='ps'><option value='m' ${p.sex=='m'?'selected':''}>Homme</option><option value='f' ${p.sex=='f'?'selected':''}>Femme</option></select></div><div class='f'><label>Âge</label><input type='number' id='pa' value='${p.age}'></div><div class='f'><label>Taille (cm)</label><input type='number' id='ph' value='${p.h}'></div><div class='f'><label>Poids (kg)</label><input type='number' id='pk' value='${$('kg').value}'></div><div class='f'><label>FTP (W)</label><input type='number' id='pf' value='${$('ftp').value}'></div><div class='f'><label>% gras (optionnel)</label><input type='number' id='pb' value='${p.bf||''}'></div><div class='f'><label>BMR mesuré (optionnel)</label><input type='number' id='pm' value='${p.bmrm||''}'></div><div class='f full'><label>Glucides habituels au déjeuner (g, facultatif; ajustés au total quotidien)</label><input type='number' id='pbk' value='${p.bkC||''}'></div><div class='f'><label>Heure habituelle du souper</label><input type='time' id='pDinner' value='${CFG.dinnerTime||'19:15'}'></div><div class='f'><label>Heure habituelle du coucher</label><input type='time' id='pBed' value='${CFG.bedTime||'22:30'}'></div><div class='f full'><label>Activité hors vélo</label><select id='pp'>${[[1.3,'Sédentaire (bureau)'],[1.4,'Modérée'],[1.5,'Très active']].map(o=>`<option value='${o[0]}' ${p.pal==o[0]?'selected':''}>${o[1]} ×${o[0]}</option>`).join('')}</select></div></div><div class='f full' style='margin:.7rem 0'><label class='cc'><input type='checkbox' id='pMealSuggestions' ${CFG.mealSuggestions===false?'':'checked'} style='width:auto'><span>Afficher les suggestions de repas</span></label></div><div class='hd'>Connexions aux plateformes</div>
 <div class='sb'>État actuel : cette version peut lire des données via Intervals.icu avec ta clé API. Ce n’est pas encore une connexion OAuth officielle directe à Garmin, Wahoo ou WHOOP. N’entre jamais un mot de passe Garmin/WHOOP ici.</div>
 <div class='ex'>Pour activer des connexions directes par compte, PERFMASTER devra être hébergé avec un serveur sécurisé, des identifiants développeur approuvés et OAuth. Les clés privées ne doivent jamais être stockées dans le HTML ou dans localStorage.</div>
 <div class='ex'><a href='https://developerportal.garmin.com/developer-programs/connect-developer-api' target='_blank' rel='noopener' style='color:var(--cy)'>Garmin Connect Developer</a> · <a href='https://developers.wahooligan.com/cloud' target='_blank' rel='noopener' style='color:var(--cy)'>Wahoo Cloud API</a> · <a href='https://developer.whoop.com/docs/developing/overview/' target='_blank' rel='noopener' style='color:var(--cy)'>WHOOP Developer</a></div>
