@@ -1,5 +1,5 @@
 /* PERFMASTER — service worker stable, sans cache des réponses privées/API. */
-const CACHE_NAME = 'perfmaster-app-2026-11-15-r3';
+const CACHE_NAME = 'perfmaster-app-2026-11-15-r4';
 const CACHE_PREFIX = 'perfmaster-app-';
 const SHELL_URLS = ['./', './index.html'];
 

@@ -1,5 +1,5 @@
 PERFMASTER — mise à jour stabilisée
-Build : 2026-11-15-stabilisee-r2
+Build : 2026-11-15-navigation-r4
 
 CONTENU
 - index.html : base PERFMASTER disponible dans cette session, en conservant ses fonctions et ses clés de stockage locales.
@@ -40,3 +40,11 @@ CORRECTIF NAVIGATION (15 novembre)
 - Les boutons du menu inférieur ont un gestionnaire de navigation indépendant du démarrage principal.
 - La sélection de texte est désactivée sur le menu et les boutons sont configurés pour le tactile.
 - Le cache du service worker a été incrémenté pour charger cette version.
+
+
+CORRECTION NAVIGATION MOBILE (r4)
+- Barre de navigation fixée au-dessus des éléments flottants et overlays inactifs.
+- Activation des onglets par clic, pointerup tactile et touchend; état actif et affichage de la vue synchronisés.
+- Sélection de texte et appel tactile natif désactivés sur les boutons de navigation.
+- Cache du service worker renouvelé en r4.
+- Contrôle effectué : syntaxe de chaque script JavaScript et intégrité du ZIP. Le test sur téléphone réel reste à confirmer.
