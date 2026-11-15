@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8">
-<meta name="perfmaster-build" content="2026-11-15-macro-balance-safe"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="perfmaster-build" content="2026-11-15-nav-touch-fix"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>PERFMASTER</title>
 <link rel="icon" type="image/png" sizes="512x512" href="./perfmaster-icon.png">
 <meta name="theme-color" content="#0a0e17">
@@ -89,6 +89,7 @@ input:focus,select:focus{border-color:var(--b)}
 .hd{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--d);font-weight:700;margin:1rem 0 .2rem}
 .app{margin-bottom:120px}.view{display:none}.view.on{display:block;animation:up .4s}
 nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:flex;justify-content:space-around;align-items:flex-end;padding:.5rem 1rem calc(.6rem + env(safe-area-inset-bottom,0px));background:rgba(18,24,36,.96);backdrop-filter:blur(12px);border-top:1px solid var(--bd);border-radius:24px 24px 0 0;z-index:30}
+nav,nav *{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}nav{pointer-events:auto;isolation:isolate}nav .nb{pointer-events:auto;touch-action:manipulation;position:relative;z-index:1}
 .nb{background:0;border:0;color:var(--m);display:flex;flex-direction:column;align-items:center;gap:.2rem;font-size:.65rem;font-weight:600;cursor:pointer;width:64px;font-size:.58rem;transition:.25s}
 .nb .ic{font-size:1.4rem}.nb.on{color:var(--b)}.nb:active .ic{transform:scale(.9)}
 .nb.home{margin-top:-34px}.nb.home .ic{width:66px;height:66px;border-radius:50%;border:3px solid var(--b);background:#16233b;display:flex;align-items:center;justify-content:center;font-size:1.9rem;box-shadow:0 6px 20px rgba(59,130,246,.45),0 0 0 5px #0f1522;transition:.3s}
@@ -152,7 +153,22 @@ input,select,textarea{max-width:100%;min-width:0}
 <label class="cc" data-k="hot"><input type="checkbox" id="hot"><span>🔥 Température chaude</span></label>
 <label class="cc" data-k="cold"><input type="checkbox" id="cold"><span>❄️ Température froide</span></label>
 </div><div class="tip" id="tip"></div></div></div></div>
-<nav><button class="nb" data-t="recup"><span class="ic">💤</span>Récup</button><button class="nb" data-t="course"><span class="ic">🏁</span>Course</button><button class="nb home on" data-t="home"><span class="ic">🏠</span>Accueil</button><button class="nb" data-t="board"><span class="ic">📊</span>Tableau de bord</button><button class="nb" data-t="cal"><span class="ic">📅</span>Calendrier</button></nav>
+<nav id="mainNav" aria-label="Navigation principale"><button type="button" class="nb" data-t="recup"><span class="ic">💤</span>Récup</button><button type="button" class="nb" data-t="course"><span class="ic">🏁</span>Course</button><button class="nb home on" data-t="home"><span class="ic">🏠</span>Accueil</button><button type="button" class="nb" data-t="board"><span class="ic">📊</span>Tableau de bord</button><button type="button" class="nb" data-t="cal"><span class="ic">📅</span>Calendrier</button></nav>
+<script>
+/* Navigation de secours : reste active même si une autre initialisation de l’app échoue. */
+(function(){
+ const nav=document.getElementById('mainNav'); if(!nav)return;
+ nav.addEventListener('click',function(ev){
+  const b=ev.target.closest('button[data-t]'); if(!b)return;
+  const key=b.dataset.t, ids=['home','board','train','recup','cal','course'];
+  if(!ids.includes(key))return;
+  ids.forEach(function(id){const view=document.getElementById('v-'+id);if(view)view.classList.toggle('on',id===key)});
+  nav.querySelectorAll('button[data-t]').forEach(function(x){x.classList.toggle('on',x===b)});
+  const dates=document.getElementById('dates');if(dates)dates.style.display=key==='course'?'none':'';
+  try{window.scrollTo({top:0,behavior:'smooth'})}catch(_){window.scrollTo(0,0)}
+ },true);
+})();
+</script>
 <div class="ov" id="ov"><div class="sheet" id="sh"></div></div><div class="toast" id="ts"></div><button type="button" class="meal-add-fab" id="mealAddFab" aria-label="Ajouter un repas" title="Ajouter un repas" onclick="addCustomMealUI()">＋</button>
 <datalist id="fl"></datalist><div class="auth" id="auth"></div>
 <script>

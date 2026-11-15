@@ -34,3 +34,9 @@ VÉRIFICATIONS EFFECTUÉES ICI
 - Syntaxe JavaScript : vérifiée avec Node.js.
 - Tests simulés : jours de repos, vélo, course et musculation; somme des glucides des repas égale à la cible alimentaire quotidienne dans les scénarios testés; aucun repas flexible n’est laissé à zéro dans le scénario de concentration qui a motivé le correctif.
 - Non vérifié ici : caméra physique, déploiement Cloudflare, API réelle Intervals.icu, clés externes, authentification réelle, appareil Garmin/WHOOP.
+
+
+CORRECTIF NAVIGATION (15 novembre)
+- Les boutons du menu inférieur ont un gestionnaire de navigation indépendant du démarrage principal.
+- La sélection de texte est désactivée sur le menu et les boutons sont configurés pour le tactile.
+- Le cache du service worker a été incrémenté pour charger cette version.
