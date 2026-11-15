@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr"><head><meta charset="UTF-8">
-<meta name="perfmaster-build" content="2026-11-15-nav-touch-fix"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>PERFMASTER</title>
 <link rel="icon" type="image/png" sizes="512x512" href="./perfmaster-icon.png">
 <meta name="theme-color" content="#0a0e17">
@@ -88,8 +87,7 @@ input:focus,select:focus{border-color:var(--b)}
 .meal-add-fab{position:fixed;right:max(18px,calc((100vw - 480px)/2 + 18px));bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:29;width:54px;height:54px;border:0;border-radius:50%;background:var(--g);color:#06251a;font-size:2rem;font-weight:800;box-shadow:0 5px 18px #0008;cursor:pointer}
 .hd{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--d);font-weight:700;margin:1rem 0 .2rem}
 .app{margin-bottom:120px}.view{display:none}.view.on{display:block;animation:up .4s}
-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:flex;justify-content:space-around;align-items:flex-end;padding:.5rem 1rem calc(.6rem + env(safe-area-inset-bottom,0px));background:rgba(18,24,36,.96);backdrop-filter:blur(12px);border-top:1px solid var(--bd);border-radius:24px 24px 0 0;z-index:2147483000;pointer-events:auto!important;touch-action:manipulation}
-nav,nav *{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}nav{pointer-events:auto;isolation:isolate}nav .nb{pointer-events:auto;touch-action:manipulation;position:relative;z-index:1}
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:flex;justify-content:space-around;align-items:flex-end;padding:.5rem 1rem calc(.6rem + env(safe-area-inset-bottom,0px));background:rgba(18,24,36,.96);backdrop-filter:blur(12px);border-top:1px solid var(--bd);border-radius:24px 24px 0 0;z-index:30}
 .nb{background:0;border:0;color:var(--m);display:flex;flex-direction:column;align-items:center;gap:.2rem;font-size:.65rem;font-weight:600;cursor:pointer;width:64px;font-size:.58rem;transition:.25s}
 .nb .ic{font-size:1.4rem}.nb.on{color:var(--b)}.nb:active .ic{transform:scale(.9)}
 .nb.home{margin-top:-34px}.nb.home .ic{width:66px;height:66px;border-radius:50%;border:3px solid var(--b);background:#16233b;display:flex;align-items:center;justify-content:center;font-size:1.9rem;box-shadow:0 6px 20px rgba(59,130,246,.45),0 0 0 5px #0f1522;transition:.3s}
@@ -120,7 +118,11 @@ input,select,textarea{max-width:100%;min-width:0}
 .fg{min-width:0}
 .cc span{overflow-wrap:anywhere}
 
-nav#mainNav,nav#mainNav *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-tap-highlight-color:transparent}nav#mainNav button{cursor:pointer!important;min-width:0;flex:1;position:relative;z-index:2147483001;pointer-events:auto!important}
+
+/* Navigation mobile robuste : boutons tactiles, sans sélection de texte. */
+nav,.nb{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; touch-action:manipulation; -webkit-tap-highlight-color:transparent; pointer-events:auto; }
+nav{z-index:80;}
+nav .nb{min-height:48px;position:relative;z-index:81;}
 </style><link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0e17">
 </head><body>
@@ -154,44 +156,7 @@ nav#mainNav,nav#mainNav *{-webkit-user-select:none!important;user-select:none!im
 <label class="cc" data-k="hot"><input type="checkbox" id="hot"><span>🔥 Température chaude</span></label>
 <label class="cc" data-k="cold"><input type="checkbox" id="cold"><span>❄️ Température froide</span></label>
 </div><div class="tip" id="tip"></div></div></div></div>
-<nav id="mainNav" aria-label="Navigation principale"><button type="button" class="nb" data-t="recup"><span class="ic">💤</span>Récup</button><button type="button" class="nb" data-t="course"><span class="ic">🏁</span>Course</button><button class="nb home on" data-t="home"><span class="ic">🏠</span>Accueil</button><button type="button" class="nb" data-t="board"><span class="ic">📊</span>Tableau de bord</button><button type="button" class="nb" data-t="cal"><span class="ic">📅</span>Calendrier</button></nav>
-<script>
-/* Navigation mobile robuste : activation tactile + clic, sans dépendre de l'initialisation principale. */
-(function(){
- const nav=document.getElementById('mainNav');
- if(!nav) return;
- const ids=['home','board','train','recup','cal','course'];
- let lastKey='',lastAt=0;
- function activate(key,ev){
-  if(!ids.includes(key)) return;
-  if(ev){ev.preventDefault();}
-  const now=Date.now();
-  if(key===lastKey && now-lastAt<450) return;
-  lastKey=key;lastAt=now;
-  let usedMain=false;
-  try{if(typeof window.tab==='function'){window.tab(key);usedMain=true;}}catch(err){console.error('Navigation PERFMASTER:',err);}
-  // Toujours assurer le changement d'écran, même si tab() échoue ailleurs.
-  ids.forEach(function(id){
-   const view=document.getElementById('v-'+id);
-   if(view)view.classList.toggle('on',id===key);
-  });
-  nav.querySelectorAll('button[data-t]').forEach(function(btn){
-   btn.classList.toggle('on',btn.dataset.t===key);
-   btn.setAttribute('aria-current',btn.dataset.t===key?'page':'false');
-  });
-  const dates=document.getElementById('dates');
-  if(dates)dates.style.display=key==='course'?'none':'';
-  try{window.scrollTo({top:0,behavior:'auto'});}catch(_){window.scrollTo(0,0);}
- }
- nav.querySelectorAll('button[data-t]').forEach(function(btn){
-  btn.style.cssText+=';pointer-events:auto;touch-action:manipulation;-webkit-user-select:none;user-select:none;';
-  btn.addEventListener('click',function(ev){activate(btn.dataset.t,ev);},true);
-  btn.addEventListener('pointerup',function(ev){if(ev.pointerType==='touch')activate(btn.dataset.t,ev);},true);
-  btn.addEventListener('touchend',function(ev){activate(btn.dataset.t,ev);},{capture:true,passive:false});
- });
- window.activatePerfmasterTab=activate;
-})();
-</script>
+<nav><button type="button" class="nb" data-t="recup" onclick="window.perfmasterNavigate && window.perfmasterNavigate('recup')"><span class="ic">💤</span>Récup</button><button type="button" class="nb" data-t="course" onclick="window.perfmasterNavigate && window.perfmasterNavigate('course')"><span class="ic">🏁</span>Course</button><button type="button" class="nb home on" data-t="home" onclick="window.perfmasterNavigate && window.perfmasterNavigate('home')"><span class="ic">🏠</span>Accueil</button><button type="button" class="nb" data-t="board" onclick="window.perfmasterNavigate && window.perfmasterNavigate('board')"><span class="ic">📊</span>Tableau de bord</button><button type="button" class="nb" data-t="cal" onclick="window.perfmasterNavigate && window.perfmasterNavigate('cal')"><span class="ic">📅</span>Calendrier</button></nav>
 <div class="ov" id="ov"><div class="sheet" id="sh"></div></div><div class="toast" id="ts"></div><button type="button" class="meal-add-fab" id="mealAddFab" aria-label="Ajouter un repas" title="Ajouter un repas" onclick="addCustomMealUI()">＋</button>
 <datalist id="fl"></datalist><div class="auth" id="auth"></div>
 <script>
@@ -328,22 +293,6 @@ function proteinTargetGkg(netExerciseKcal,kg,hasTraining){
  return 2.0;
 }
 
-// Répartit toujours un objectif entier entre les repas sans envoyer tout le reliquat
-// sur le dernier repas. Utilisé par le calcul quotidien et le calcul multi-séances.
-function rebalanceMealTargets(meals,key,target,weightIndex){
- const list=Array.isArray(meals)?meals:[];
- if(!list.length)return;
- const total=Math.max(0,Math.round(Number(target)||0));
- let weights=list.map(e=>Math.max(0,Number(e&&e[key])||0));
- let sum=weights.reduce((a,b)=>a+b,0);
- if(sum<=0){weights=list.map(e=>Math.max(0,Number(WT[e&&e.type]?.[weightIndex])||0));sum=weights.reduce((a,b)=>a+b,0)}
- if(sum<=0){weights=list.map(()=>1);sum=list.length}
- const exact=weights.map(w=>total*w/sum),allocated=exact.map(Math.floor);
- let remaining=total-allocated.reduce((a,b)=>a+b,0);
- const order=exact.map((v,i)=>({i,frac:v-allocated[i]})).sort((a,b)=>b.frac-a.frac||a.i-b.i);
- for(let i=0;i<remaining;i++)allocated[order[i%order.length].i]++;
- list.forEach((e,i)=>{e[key]=allocated[i]});
-}
 function balanceEnergyMacros(energyKcal,intraCarbs,baseCarbs,protein,kg){
  // PERFMASTER: lipides entre 1,3 et 2,0 g/kg/jour. Le haut de la fourchette
  // n'est jamais une cible automatique : les glucides restent prioritaires
@@ -368,6 +317,55 @@ function balanceEnergyMacros(energyKcal,intraCarbs,baseCarbs,protein,kg){
  const fat=Math.max(0,Math.round(fatKcal/9));
  const actualKcal=Math.round(4*(carbs+Math.max(0,Number(intraCarbs)||0))+4*(Number(protein)||0)+9*fat);
  return {carbs,fat,mealBudget,feasible,targetKcal:actualKcal,fatPct:target>0?(9*fat/target):0,fatMin:Math.round(minFatG),fatMax:Math.round(maxFatG),fatGkg:weight>0?fat/weight:0};
+}
+
+function allocateWeightedInteger(total,weights){
+ const target=Math.max(0,Math.round(Number(total)||0)),n=weights.length;if(!n)return [];
+ let w=weights.map(x=>Math.max(0,Number(x)||0)),sum=w.reduce((a,b)=>a+b,0);
+ if(sum<=0){w=Array(n).fill(1);sum=n;}
+ const raw=w.map(x=>target*x/sum),out=raw.map(Math.floor);
+ let left=target-out.reduce((a,b)=>a+b,0);
+ const order=raw.map((v,i)=>({i,frac:v-out[i],weight:w[i]})).sort((a,b)=>b.frac-a.frac||b.weight-a.weight||a.i-b.i);
+ for(let j=0;j<left;j++)out[order[j%order.length].i]++;
+ return out;
+}
+function mealMacroWeight(e,index){
+ const w=WT[e.type]||WT[(e.pre?'pre':e.rec?'rec':'sn')]||[1,1,1];
+ return Math.max(.05,Number(w[index])||0);
+}
+function distributeMealMacros(meals,targets){
+ if(!Array.isArray(meals)||!meals.length)return;
+ const carbs=Math.max(0,Math.round(Number(targets.c)||0));
+ const protein=Math.max(0,Math.round(Number(targets.p)||0));
+ const fat=Math.max(0,Math.round(Number(targets.f)||0));
+ const kg=Math.max(0,Number(targets.kg)||0);
+ // Preserve only explicitly assigned pre-/post-workout or habitual-breakfast portions.
+ // The remainder is distributed from meal-type weights, not stale macro values.
+ const fixedIdx=[],fixedVals=[],flexIdx=[];
+ meals.forEach((e,i)=>{
+  if(e.carbFixedG!==null&&e.carbFixedG!==undefined&&Number.isFinite(Number(e.carbFixedG))&&Number(e.carbFixedG)>0){fixedIdx.push(i);fixedVals.push(Number(e.carbFixedG));}
+  else flexIdx.push(i);
+ });
+ const fixedRequested=fixedVals.reduce((a,b)=>a+b,0),fixedTarget=Math.min(carbs,Math.round(fixedRequested));
+ const fixedAlloc=allocateWeightedInteger(fixedTarget,fixedVals);
+ meals.forEach(e=>{e.c=0;});
+ fixedIdx.forEach((idx,j)=>{meals[idx].c=fixedAlloc[j];});
+ let remaining=carbs-fixedTarget;
+ if(flexIdx.length){
+  const alloc=allocateWeightedInteger(remaining,flexIdx.map(i=>mealMacroWeight(meals[i],0)));
+  flexIdx.forEach((idx,j)=>{meals[idx].c+=alloc[j];});
+ }else if(remaining>0){
+  const alloc=allocateWeightedInteger(remaining,meals.map(e=>mealMacroWeight(e,0)));
+  meals.forEach((e,i)=>{e.c+=alloc[i];});
+ }
+ // Keep the existing recovery-protein floor when possible, then distribute the balance.
+ const pFloors=meals.map(e=>(e.type==='rec'||e.rec)?Math.max(0,.3*kg):0);
+ const floorTotal=pFloors.reduce((a,b)=>a+b,0),floorTarget=Math.min(protein,Math.round(floorTotal));
+ const floorAlloc=allocateWeightedInteger(floorTarget,pFloors);
+ const pExtra=protein-floorTarget,pExtraAlloc=allocateWeightedInteger(pExtra,meals.map(e=>mealMacroWeight(e,1)));
+ meals.forEach((e,i)=>{e.p=floorAlloc[i]+pExtraAlloc[i];});
+ const fAlloc=allocateWeightedInteger(fat,meals.map(e=>mealMacroWeight(e,2)));
+ meals.forEach((e,i)=>{e.f=fAlloc[i];e.kcal=Math.round(e.c*4+e.p*4+e.f*9);});
 }
 
 function nutrition72hContext(dayKey,ftpValue){
@@ -470,36 +468,20 @@ function gen(gd){gd=gd||$('day').value;
  // Le délai est mesuré depuis la première prise pré-séance; les portions sont réparties
  // entre les repas au prorata du temps disponible, sans augmenter le total journalier.
  const fixedCarbs=new Map();
- // La quantité habituelle au déjeuner est une préférence, pas un droit de consommer
- // tout le budget journalier : plafonner à 40 % des glucides alimentaires pour
- // conserver une vraie répartition sur les autres repas.
- const breakfastEvents=ev.filter(e=>e.type==='bk'&&!e.pre);
- if(PROF.bkC>0&&breakfastEvents.length){
-  const breakfastBudget=Math.min(Number(PROF.bkC)||0,offC*(ev.length>1?.4:1));
-  breakfastEvents.forEach(e=>fixedCarbs.set(e,breakfastBudget/breakfastEvents.length));
- }
+ if(PROF.bkC>0)ev.forEach(e=>{if(e.type==='bk'&&!e.pre)fixedCarbs.set(e,Number(PROF.bkC)||0)});
  if(!rest){
   const preEvents=ev.filter(e=>e.pre).sort((a,b)=>a.t-b.t);
   if(preEvents.length){const hours=Math.max(1,Math.min(4,Math.round(Math.max(0,(R-preEvents[0].t)/60)*10)/10));const target=Math.min(offC,hours*kg);const weights=preEvents.map(e=>Math.max(.1,(R-e.t)/60)),ws=weights.reduce((a,b)=>a+b,0);preEvents.forEach((e,i)=>fixedCarbs.set(e,target*weights[i]/ws));}
   const postEvent=ev.find(e=>e.type==='rec');
   if(postEvent){const postKg=(dur>2||hasQ||IF>=.85)?1.7:1.0;fixedCarbs.set(postEvent,postKg*kg);}
  }
- // Les cibles pré/post et le petit-déjeuner personnalisé sont prioritaires,
- // mais ne doivent jamais monopoliser tous les glucides de la journée.
- // Lorsqu'il reste d'autres repas, elles sont plafonnées à 75 % du budget :
- // les 25 % restants sont distribués aux repas flexibles (dont dîner/souper).
- const fixedTotal=[...fixedCarbs.values()].reduce((a,b)=>a+Math.max(0,b),0);
- const hasFlexibleMeals=ev.some(e=>!fixedCarbs.has(e));
- const fixedLimit=offC*(hasFlexibleMeals?.75:1);
- const fixedScale=fixedTotal>fixedLimit&&fixedTotal>0?fixedLimit/fixedTotal:1;
+ // Si les cibles pré/post et le petit-déjeuner personnalisé dépassent le budget,
+ // elles sont réduites proportionnellement : le total quotidien ne change jamais.
+ const fixedTotal=[...fixedCarbs.values()].reduce((a,b)=>a+Math.max(0,b),0),fixedScale=fixedTotal>offC&&fixedTotal>0?offC/fixedTotal:1;
  for(const [e,v] of fixedCarbs)fixedCarbs.set(e,Math.max(0,v*fixedScale));
- const fc=e=>rest&&!fixedCarbs.has(e)?0:Math.max(0,Number(fixedCarbs.get(e))||0);
- const fx=ev.reduce((n,e)=>n+fc(e),0),remC=Math.max(0,offC-fx),cw=e=>WT[e.type][0],sum=[0,1,2].map(k=>ev.reduce((n,e)=>n+(k==0?(fc(e)>0?0:cw(e)):WT[e.type][k]),0));
  let betDone=null;if($("bet").checked){const c=ev.filter(e=>e.t<=R-90);betDone=(c.length?c:ev.filter(e=>e.t<=R-45)).pop()}
- ev.forEach((e,i)=>{if(!e.custom)e.id="m"+i;const w=WT[e.type];
-  e.c=fc(e)>0?Math.round(fc(e)):(sum[0]>0?Math.round(remC*cw(e)/sum[0]):0);e.p=Math.max(sum[1]>0?Math.round(Pt*w[1]/sum[1]):0,e.type=='rec'||e.rec?Math.round(.3*kg):0);e.f=sum[2]>0?Math.round(Ft*w[2]/sum[2]):0;e.kcal=e.c*4+e.p*4+e.f*9;e.bet=e===betDone});
- const balanceMealMacro=(key,target)=>rebalanceMealTargets(ev,key,target,{c:0,p:1,f:2}[key]);
- balanceMealMacro('c',offC);balanceMealMacro('p',Pt);balanceMealMacro('f',Ft);
+ ev.forEach((e,i)=>{if(!e.custom)e.id="m"+i;e.carbFixedG=fixedCarbs.has(e)?Math.max(0,Number(fixedCarbs.get(e))||0):null;e.bet=e===betDone});
+ distributeMealMacros(ev,{c:offC,p:Pt,f:Ft,kg});
  ev.forEach((e,i)=>{e.kcal=Math.round(e.c*4+e.p*4+e.f*9);const choices=e.custom||CFG.mealSuggestions===false?[]:mealTemplatesFor(e,gd,i);e.opts=choices.map(t=>build(t,{c:e.c,p:e.p,f:e.f},e===betDone));});
  // Retirer les repas supprimés et redistribuer leurs objectifs aux repas restants.
  let deletedMeals={};try{deletedMeals=JSON.parse(localStorage.getItem("gb27deletedMeals")||"{}")}catch(e){}
@@ -507,15 +489,11 @@ function gen(gd){gd=gd||$('day').value;
  if(removedIds.size){
    const removed=ev.filter(e=>removedIds.has(e.id)),kept=ev.filter(e=>!removedIds.has(e.id));
    if(kept.length&&removed.length){
-     for(const key of ["c","p","f"]){
-       const pool=kept.reduce((n,e)=>n+Math.max(0,e[key]||0),0),extra=removed.reduce((n,e)=>n+Math.max(0,e[key]||0),0);
-       if(pool>0)kept.forEach(e=>e[key]=Math.round((e[key]+extra*(e[key]/pool))*10)/10);
-     }
-     kept.forEach(e=>{e.c=Math.round(e.c);e.p=Math.round(e.p);e.f=Math.round(e.f);e.kcal=Math.round(e.c*4+e.p*4+e.f*9);e.opts=e.custom||CFG.mealSuggestions===false?[]:mealTemplatesFor(e,gd,Number(String(e.id).slice(1))).map(t=>build(t,{c:e.c,p:e.p,f:e.f},e.bet));});
+     // Recompute from meal weights after deletion; do not scale a broken previous split.
+     distributeMealMacros(kept,{c:offC,p:Pt,f:Ft,kg});
+     kept.forEach(e=>{e.opts=e.custom||CFG.mealSuggestions===false?[]:mealTemplatesFor(e,gd,Number(String(e.id).slice(1))).map(t=>build(t,{c:e.c,p:e.p,f:e.f},e.bet));});
    }
    ev.splice(0,ev.length,...kept);
-   // Rebalance après suppression : les totaux quotidiens restent identiques malgré les arrondis.
-   balanceMealMacro('c',offC);balanceMealMacro('p',Pt);balanceMealMacro('f',Ft);
    ev.forEach(e=>{e.kcal=Math.round(e.c*4+e.p*4+e.f*9);e.opts=e.custom||CFG.mealSuggestions===false?[]:mealTemplatesFor(e,gd,Number(String(e.id).slice(1))).map(t=>build(t,{c:e.c,p:e.p,f:e.f},e.bet));});
  }
  const kc=Math.round((ev.reduce((n,e)=>n+(Number(e.kcal)||0),0)+intraC*4)/10)*10;
@@ -665,9 +643,7 @@ function applyMultiSessionEnergy(P,dayKey){
    else if(sport==='run') rate=dur<=1.5?(hard?40:25):dur<=2.5?(hard?55:40):55;
    else if(sport==='swim'||sport==='ski') rate=dur<=1.5?(hard?40:25):dur<=2.5?(hard?55:40):60;
    if(isRaceDay)rate+=5;
-  }
-  
-  // User can choose a practiced gut-training ceiling; default remains conservative.
+  }// User can choose a practiced gut-training ceiling; default remains conservative.
   const gut=Number(CFG.intraCeiling)||90;
   if(sport==='bike'&&dur>2.5&&gut>90)rate+=gut>=120?20:10;
   rate=Math.min(rate,sport==='bike'?gut:(sport==='run'?60:75));
@@ -684,9 +660,9 @@ function applyMultiSessionEnergy(P,dayKey){
  const balanced=balanceEnergyMacros(P.EE-def,totalIntra,carbs,protein,kg);
  carbs=balanced.carbs;P.macroFeasible=balanced.feasible;
  const fat=balanced.fat;
- // Distribute daily targets proportionally across the generated meals.
- const distribute=(key,total)=>rebalanceMealTargets(P.ev,key,total,{c:0,p:1,f:2}[key]);
- distribute('c',carbs);distribute('p',protein);distribute('f',fat);
+ // Redistribute from stable meal-type weights while preserving explicit pre-/post-workout targets.
+ // Never use existing e.c/e.p/e.f values as weights: that caused stale imbalances to persist.
+ distributeMealMacros(P.ev,{c:carbs,p:protein,f:fat,kg});
  P.ev.forEach((e,i)=>{e.kcal=Math.round(e.c*4+e.p*4+e.f*9);e.opts=CFG.mealSuggestions===false?[]:mealTemplatesFor(e,dayKey,i).map(t=>build(t,{c:e.c,p:e.p,f:e.f},e.bet));});
  P.nutrition72h=ctx72;P.TSS=Math.round(totalTSS);P.intraC=totalIntra;const fuelHours=sessionFuel.reduce((a,x)=>a+(x.rate>0?x.dur:0),0);P.rate=fuelHours>0?Math.round(totalIntra/fuelHours):0;P.sessionFuel=sessionFuel;P.sessions=activeEntries.map((entry,i)=>({id:entry.id,sport:entry.cfg.sport||'bike',start:entry.cfg.ride||'09:30',dur:Number(entry.cfg.dur)||0,netKcal:workoutKcal(entry.cfg)}));
  P.tgt={kcal:Math.round(P.ev.reduce((a,e)=>a+e.kcal,0)+totalIntra*4),c:carbs+totalIntra,p:protein,f:fat,fMin:balanced.fatMin,fMax:balanced.fatMax,fatPct:balanced.fatPct,proteinGkg:proteinKg};
@@ -737,17 +713,10 @@ function closeSheet(){
 }
 const itemsHtml=o=>o.items.map(i=>`• <b>${i.pc?Math.round(i.g/i.pc)+" × ":""}${i.n}</b> — ${i.g} g<br>`).join("");
 function deletePlannedMeal(id){
- const day=$("day").value;if(!day){toast("Choisis d’abord une journée");return;}
- let all={};try{all=JSON.parse(localStorage.getItem("gb27deletedMeals")||"{}")}catch(e){}
+ const day=$("day").value;let all={};try{all=JSON.parse(localStorage.getItem("gb27deletedMeals")||"{}")}catch(e){}
  all[day]=Array.isArray(all[day])?all[day]:[];if(!all[day].includes(id))all[day].push(id);
- const oldLogs=Array.isArray(LOGS[day])?LOGS[day]:[];
- const nextLogs=oldLogs.filter(x=>x.m!==id);
- const nextAllLogs=Object.assign({},LOGS,{[day]:nextLogs});
- // Enregistrer ensemble la suppression du repas et les aliments associés.
- // Si l’une des écritures échoue, les deux anciennes valeurs sont restaurées.
- try{persistBatch([["gb27deletedMeals",JSON.stringify(all)],["gb27logs",JSON.stringify(nextAllLogs)]]);}
- catch(err){console.error("Suppression du repas non persistée",err);toast(err&&err.perfmasterQuota?"Stockage plein : repas et journal conservés. Exportez vos données avant toute autre modification.":"Suppression non enregistrée : les données ont été conservées.");return;}
- LOGS[day]=nextLogs;render();closeSheet();toast("Repas supprimé et objectifs redistribués ✓");
+ try{localStorage.setItem("gb27deletedMeals",JSON.stringify(all));}catch(e){toast("Impossible de sauvegarder la suppression");return;}
+ LOGS[day]=dayLogs().filter(x=>x.m!==id);save();render();closeSheet();toast("Repas supprimé et objectifs redistribués ✓");
 }
 function logsHtml(m){const l=dayLogs().filter(x=>x.m==m);return l.length?`<div class="hd">Enregistré</div>`+l.map(x=>`<div class="lg"><span>${x.n}<br><small>C ${x.c} · P ${x.p} · F ${x.f} · ${kcalOf(x)} kcal</small></span><button onclick="delLog('${x.id}')">✕</button></div>`).join(""):""}
 const normFood=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
@@ -863,7 +832,7 @@ try{if(!localStorage.getItem('gb27lang'))localStorage.setItem('gb27lang','fr')}c
 let uiTranslationBusy=false;const uiLangObserver=new MutationObserver(()=>{if(uiTranslationBusy)return;uiTranslationBusy=true;try{applyUiTranslations()}finally{uiTranslationBusy=false}});
 function startUiTranslation(){applyUiTranslations();uiLangObserver.observe(document.body,{childList:true,subtree:true,characterData:true})}
 if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',startUiTranslation);else startUiTranslation();
-function openProf(){const p=PROF;openSheet(`<div class='mh'><div class='mt'>⚙️ Profil</div><button class='x' onclick='closeSheet()'>✕</button></div><div class='f full'><label>Langue / Language</label><select id='uiLang' onchange='setUiLanguage(this.value)'><option value='fr'>Français</option><option value='en'>English</option></select></div><div class='fg'><div class='f'><label>Nom</label><input id='pn' value='${p.name||''}'></div><div class='f'><label>Sexe</label><select id='ps'><option value='m' ${p.sex=='m'?'selected':''}>Homme</option><option value='f' ${p.sex=='f'?'selected':''}>Femme</option></select></div><div class='f'><label>Âge</label><input type='number' id='pa' value='${p.age}'></div><div class='f'><label>Taille (cm)</label><input type='number' id='ph' value='${p.h}'></div><div class='f'><label>Poids (kg)</label><input type='number' id='pk' value='${$('kg').value}'></div><div class='f'><label>FTP (W)</label><input type='number' id='pf' value='${$('ftp').value}'></div><div class='f'><label>% gras (optionnel)</label><input type='number' id='pb' value='${p.bf||''}'></div><div class='f'><label>BMR mesuré (optionnel)</label><input type='number' id='pm' value='${p.bmrm||''}'></div><div class='f full'><label>Glucides habituels au déjeuner (g, facultatif; ajustés au total quotidien)</label><input type='number' id='pbk' value='${p.bkC||''}'></div><div class='f'><label>Heure habituelle du souper</label><input type='time' id='pDinner' value='${CFG.dinnerTime||'19:15'}'></div><div class='f'><label>Heure habituelle du coucher</label><input type='time' id='pBed' value='${CFG.bedTime||'22:30'}'></div><div class='f full'><label>Activité hors vélo</label><select id='pp'>${[[1.3,'Sédentaire (bureau)'],[1.4,'Modérée'],[1.5,'Très active']].map(o=>`<option value='${o[0]}' ${p.pal==o[0]?'selected':''}>${o[1]} ×${o[0]}</option>`).join('')}</select></div></div><div class='f full' style='margin:.7rem 0'><label class='cc'><input type='checkbox' id='pMealSuggestions' ${CFG.mealSuggestions===false?'':'checked'} style='width:auto'><span>Afficher les suggestions de repas</span></label></div><div class='hd'>Connexions aux plateformes</div>
+function openProf(){const p=PROF;openSheet(`<div class='mh'><div class='mt'>⚙️ Profil</div><button class='x' onclick='closeSheet()'>✕</button></div><div class='f full'><label>Langue / Language</label><select id='uiLang' onchange='setUiLanguage(this.value)'><option value='fr'>Français</option><option value='en'>English</option></select></div><div class='fg'><div class='f'><label>Nom</label><input id='pn' value='${p.name||''}'></div><div class='f'><label>Sexe</label><select id='ps'><option value='m' ${p.sex=='m'?'selected':''}>Homme</option><option value='f' ${p.sex=='f'?'selected':''}>Femme</option></select></div><div class='f'><label>Âge</label><input type='number' id='pa' value='${p.age}'></div><div class='f'><label>Taille (cm)</label><input type='number' id='ph' value='${p.h}'></div><div class='f'><label>Poids (kg)</label><input type='number' id='pk' value='${$('kg').value}'></div><div class='f'><label>FTP (W)</label><input type='number' id='pf' value='${$('ftp').value}'></div><div class='f'><label>% gras (optionnel)</label><input type='number' id='pb' value='${p.bf||''}'></div><div class='f'><label>BMR mesuré (optionnel)</label><input type='number' id='pm' value='${p.bmrm||''}'></div><div class='f full'><label>Glucides habituels au déjeuner (g, optionnel)</label><input type='number' id='pbk' value='${p.bkC||''}'></div><div class='f'><label>Heure habituelle du souper</label><input type='time' id='pDinner' value='${CFG.dinnerTime||'19:15'}'></div><div class='f'><label>Heure habituelle du coucher</label><input type='time' id='pBed' value='${CFG.bedTime||'22:30'}'></div><div class='f full'><label>Activité hors vélo</label><select id='pp'>${[[1.3,'Sédentaire (bureau)'],[1.4,'Modérée'],[1.5,'Très active']].map(o=>`<option value='${o[0]}' ${p.pal==o[0]?'selected':''}>${o[1]} ×${o[0]}</option>`).join('')}</select></div></div><div class='f full' style='margin:.7rem 0'><label class='cc'><input type='checkbox' id='pMealSuggestions' ${CFG.mealSuggestions===false?'':'checked'} style='width:auto'><span>Afficher les suggestions de repas</span></label></div><div class='hd'>Connexions aux plateformes</div>
 <div class='sb'>État actuel : cette version peut lire des données via Intervals.icu avec ta clé API. Ce n’est pas encore une connexion OAuth officielle directe à Garmin, Wahoo ou WHOOP. N’entre jamais un mot de passe Garmin/WHOOP ici.</div>
 <div class='ex'>Pour activer des connexions directes par compte, PERFMASTER devra être hébergé avec un serveur sécurisé, des identifiants développeur approuvés et OAuth. Les clés privées ne doivent jamais être stockées dans le HTML ou dans localStorage.</div>
 <div class='ex'><a href='https://developerportal.garmin.com/developer-programs/connect-developer-api' target='_blank' rel='noopener' style='color:var(--cy)'>Garmin Connect Developer</a> · <a href='https://developers.wahooligan.com/cloud' target='_blank' rel='noopener' style='color:var(--cy)'>Wahoo Cloud API</a> · <a href='https://developer.whoop.com/docs/developing/overview/' target='_blank' rel='noopener' style='color:var(--cy)'>WHOOP Developer</a></div>
@@ -1179,5 +1148,54 @@ if(CFG.MODE){MODE=CFG.MODE==="affutage"?"pertepoids":CFG.MODE;document.querySele
 setDay(0);loadDay();render();updateSportFields();if(sessionStorage.getItem('gb27onboarding')==='1'){setTimeout(()=>mealPrefsUI(false),350)}startAutoSyncIv();setInterval(()=>{if(!$("ov").classList.contains("on"))render()},60000);window.__ok=1;
 window.addEventListener('error',e=>{console.error('Erreur d’interface PERFMASTER:',e.error||e.message);if(window.__ok&&$('ts'))toast('Une action a rencontré une erreur. Réessayez; vos données locales ne sont pas réinitialisées.');});
 window.addEventListener('unhandledrejection',e=>{console.error('Action PERFMASTER interrompue:',e.reason);if(window.__ok&&$('ts'))toast('Une opération a échoué. L’application reste utilisable.');});
-</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));}</script>
+</script><script>
+/* Couche de secours indépendante de l'initialisation principale. Elle garantit
+   que les onglets restent navigables même si un autre module échoue au démarrage. */
+(function(){
+ const keys=['home','board','train','recup','cal','course'];
+ let lastPointer=0;
+ function navigate(name){
+  if(!keys.includes(name))return;
+  const overlay=document.getElementById('ov');
+  if(overlay&&overlay.classList.contains('on')){
+   try{if(typeof window.closeSheet==='function')window.closeSheet();else overlay.classList.remove('on');}catch(e){overlay.classList.remove('on');}
+  }
+  try{if(typeof window.tab==='function')window.tab(name);}catch(e){console.error('Navigation PERFMASTER (fonction principale):',e);}
+  keys.forEach(k=>{const v=document.getElementById('v-'+k);if(v)v.classList.toggle('on',k===name);});
+  document.querySelectorAll('nav .nb[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===name));
+  const dates=document.getElementById('dates');if(dates)dates.style.display=name==='course'?'none':'';
+  const view=document.getElementById('v-'+name);
+  if(view&&!view.childElementCount&&typeof window.render==='function'){
+   try{window.render();}catch(e){console.error('Rendu PERFMASTER:',e);}
+   keys.forEach(k=>{const v=document.getElementById('v-'+k);if(v)v.classList.toggle('on',k===name);});
+  }
+  try{window.scrollTo(0,0);}catch(e){}
+  document.dispatchEvent(new CustomEvent('perfmaster:tabchange',{detail:{tab:name}}));
+ }
+ window.perfmasterNavigate=navigate;
+ function navTarget(e){
+  const t=e.target&&e.target.closest?e.target.closest('nav .nb[data-t]'):null;
+  if(!t)return null;
+  return t;
+ }
+ document.addEventListener('pointerup',function(e){
+  const b=navTarget(e);if(!b)return;
+  lastPointer=Date.now();e.preventDefault();e.stopPropagation();
+  if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+  navigate(b.dataset.t);
+ },true);
+ document.addEventListener('click',function(e){
+  const b=navTarget(e);if(!b)return;
+  if(e.detail!==0&&Date.now()-lastPointer<700){e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();return;}
+  e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+  navigate(b.dataset.t);
+ },true);
+ document.addEventListener('keydown',function(e){
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  const b=navTarget(e);if(!b)return;
+  e.preventDefault();navigate(b.dataset.t);
+ },true);
+})();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));}</script>
 </body></html>

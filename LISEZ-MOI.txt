@@ -1,0 +1,18 @@
+PERFMASTER — reconstruction stabilisée (15 novembre 2026)
+
+Contenu :
+- RAPPORT_TESTS.txt : résultats des vérifications et limites de validation.
+- index.html : version complète de l’application PERFMASTER, avec redistribution des macros recalculée par type de repas plutôt que selon l’ancien partage déjà possiblement déséquilibré.
+- service-worker.js : mise à jour réseau prioritaire et invalidation de l’ancien cache PERFMASTER.
+
+Installation :
+1. Exporter les données depuis PERFMASTER avant tout remplacement.
+2. Déployer ces deux fichiers à la racine du projet Cloudflare Pages, au même domaine qu’avant.
+3. Conserver les autres ressources déjà présentes (manifest.webmanifest, icônes, logo, fonctions et autres fichiers).
+4. Ne pas désinstaller l’application, ne pas effacer les données du site et ne pas changer de domaine.
+
+Limites de validation :
+- Les contrôles statiques JavaScript/HTML et les tests unitaires de répartition des macros sont fournis dans le rapport séparé.
+- Seul un test simulé d’Intervals.icu a été fait; la connexion à votre compte réel et à votre clé n’a pas été validée. Aucune clé n’est incluse.
+- Les clics physiques sur votre téléphone et le déploiement Cloudflare ne peuvent pas être validés depuis cet environnement.
+- Les connexions OAuth directes Garmin/WHOOP/TrainingPeaks et le stockage serveur des comptes ne sont pas ajoutés par cette reconstruction statique.
