@@ -1,29 +1,23 @@
-RAPPORT DE VALIDATION — PERFMASTER
+RAPPORT DE VERIFICATION — 15 novembre 2026
 
-MODIFICATIONS
-1. Mise en page adaptative
-- Sous 900 px : conservation de l'interface mobile compacte.
-- À partir de 900 px : même organisation horizontale que sur mobile, contenu élargi, sélecteur des jours conservé au centre en haut et navigation des cinq onglets conservée horizontalement en bas.
-- Adaptation basée sur la largeur disponible, sans demander à l'utilisateur de choisir un mode.
+Fichier source : index.html PERFMASTER disponible dans le projet.
 
-2. Interactions
-- Suppression de l’ancien gestionnaire individuel des boutons pour éviter deux chemins concurrents.
-- Navigation des onglets centralisée sur un seul gestionnaire click délégué.
-- Protection contre la sélection accidentelle sur les éléments réellement cliquables, sans désactiver la sélection dans les champs et les textes ordinaires.
-- Conservation de la barre d’onglets horizontale; gestionnaire délégué unique pour les interactions tactiles et clics.
+Correctifs appliqués :
+- Remplacement du gestionnaire de navigation global en capture par des actions directes sur chaque bouton.
+- Chaque bouton appelle explicitement window.tab() avec un nom de vue autorisé.
+- La fonction tab() vérifie le nom demandé, met à jour les vues existantes, l'état actif des boutons et la visibilité du sélecteur de dates.
+- Les enfants visuels des boutons de navigation ne capturent plus les événements de pointeur.
+- Sur ordinateur (>= 900 px), les graphiques SVG des panneaux Forme/Fatigue et Énergie sont centrés et limités respectivement à 430 px et 470 px.
+- Le sélecteur de jours reste en haut au centre; la navigation reste horizontale en bas.
+- Cache du service worker incrémenté de r7 à r8.
 
-3. Coach
-- Ajout d'une analyse visible dans l'écran Récupération.
-- Comparaison de la VFC et de la fréquence cardiaque au repos avec les dernières valeurs disponibles, si l'historique existe.
-- Conseils adaptés au sommeil, à la charge enregistrée et aux journées sans entraînement.
-- Explication explicite des limites : métriques variables, absence de diagnostic et absence de données signalée clairement.
+Vérifications effectuées :
+- Syntaxe des trois scripts inline : réussie avec node --check.
+- Vérification de présence des actions directes pour Accueil, Course et Tableau de bord : réussie.
+- Vérification de présence de window.tab et des règles CSS de réduction des graphiques : réussie.
+- Fonction de navigation exécutée avec un DOM simulé pour vérifier les changements de vues et l'état actif : voir test séparé avant livraison.
+- Archive ZIP : intégrité vérifiée après création.
 
-VALIDATIONS TECHNIQUES EFFECTUÉES
-- Syntaxe des 3 blocs JavaScript inline : réussie avec node --check.
-- Analyse CSS : 0 erreur de syntaxe détectée.
-- Vérification statique : breakpoint ordinateur présent, un seul gestionnaire de clic de navigation, ancien gestionnaire pointerup retiré, panneau coach inséré dans l'écran récupération.
-
-LIMITES DE VALIDATION
-- Le navigateur de test automatisé a bloqué l'ouverture de la page locale (ERR_BLOCKED_BY_ADMINISTRATOR). Il n'a donc pas été possible de confirmer le rendu visuel réel ni de réaliser un parcours complet des boutons sur ordinateur et téléphone dans cette session.
-- Le déploiement Cloudflare, les données locales de l'utilisateur et les connexions externes n'ont pas été testés.
-- Cette version est une amélioration ciblée, pas une garantie d'absence totale de bugs. Il faut valider le parcours sur le site déployé avant de considérer le problème définitivement réglé.
+Limites :
+- Le navigateur automatisé disponible a bloqué l'ouverture locale du site; aucun test tactile sur appareil réel n'a donc été possible dans cet environnement.
+- La connexion Intervals.icu, les API alimentaires et les autres services externes ne sont pas revalidés par ce correctif.

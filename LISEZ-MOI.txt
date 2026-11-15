@@ -1,18 +1,20 @@
-PERFMASTER — VERSION ORDINATEUR + INTERACTIONS + COACH
+PERFMASTER — Correctif navigation et graphiques ordinateur
 
-CONTENU
-- index.html : interface responsive et améliorations du coach.
-- service-worker.js : version de cache mise à jour pour charger le nouvel index.
+Contenu :
+- index.html : navigation directe par bouton pour les cinq onglets; correction de la logique d'affichage des vues; mise à l'échelle des graphiques sur ordinateur.
+- service-worker.js : version de cache augmentée afin que le navigateur récupère le nouvel index.
 
-INSTALLATION
-1. Exportez d'abord vos données depuis PERFMASTER (Paramètres > Exporter mes données).
-2. Décompressez cette archive.
-3. Dans votre projet Cloudflare Pages, remplacez uniquement index.html et service-worker.js à la racine.
-4. Conservez le même domaine et tous les autres fichiers existants (manifest, icônes, logo, etc.).
-5. Redéployez le projet.
+Mise en page :
+- Le sélecteur des jours reste en haut et centré sur ordinateur.
+- La navigation reste horizontale en bas.
+- Les graphiques Forme/Fatigue et Énergie sont limités en largeur sur ordinateur et centrés.
+- La disposition mobile est conservée.
 
-IMPORTANT
-- Ne désinstallez pas la PWA et ne changez pas de domaine : les données locales sont liées à l'origine du site.
-- Cette archive ne contient pas les icônes, le manifeste ni les autres ressources du site : elle n'est pas destinée à remplacer tout le projet.
-- Le changement de mise en page se fait automatiquement selon la largeur de l'écran : même structure horizontale sur ordinateur et téléphone. Sur ordinateur, le sélecteur des jours reste centré en haut et les cinq onglets restent alignés horizontalement en bas; le contenu utilise simplement la largeur supplémentaire.
-- Les conseils du coach sont générés à partir des métriques effectivement disponibles. En l'absence de données, l'application le signale au lieu d'inventer un état de forme.
+Installation :
+1. Exporter les données PERFMASTER avant toute mise à jour.
+2. Décompresser cette archive.
+3. Remplacer index.html et service-worker.js à la racine du site Cloudflare Pages.
+4. Conserver le même domaine et tous les autres fichiers (manifest, icônes, logo, etc.).
+5. Ne pas effacer les données du navigateur et ne pas désinstaller la PWA.
+
+Important : les scripts ont été vérifiés syntaxiquement et la fonction de navigation a été testée avec un DOM simulé. L'interaction tactile sur le téléphone physique et le rendu exact sur votre ordinateur restent à confirmer sur votre appareil.
