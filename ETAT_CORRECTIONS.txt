@@ -1,0 +1,15 @@
+PERFMASTER - ETAT DU PACKAGE
+
+Corrections incluses:
+- Le client envoie maintenant l'abonnement Push au format attendu par le Worker (objet subscription direct).
+- Le Worker backend inclus correspond au schéma D1 de ce package: password_iterations, last_seen_at, auth_secret et id.
+- Le service worker sait recevoir un événement push et afficher une notification.
+- Le calcul dailyBaselineKcal conserve le PAL pour une séance de moins de 1 h ou de dépense nette < 100 kcal.
+
+IMPORTANT - limites constatées dans cette version:
+- L'écran de connexion de index.html utilise encore les comptes locaux; il n'appelle pas encore /api/auth/register ni /api/auth/login.
+- Les sauvegardes de données ne sont pas encore synchronisées automatiquement vers /api/data.
+- Le Worker stocke les abonnements Push, mais n'envoie pas encore de notifications push distantes (pas de sender VAPID ni de route d'envoi).
+- Les clics/navigation ne peuvent pas être certifiés corrigés sans exécuter l'application dans un navigateur réel. Le code source contient des gestionnaires de clics délégués.
+
+Ne supprimez pas les données locales et ne désinstallez pas l'application.

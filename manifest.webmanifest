@@ -1,16 +1,10 @@
 {
-  "name": "PERFMASTER",
+  "name": "PERFMASTER — Performance & Nutrition",
   "short_name": "PERFMASTER",
-  "start_url": "./",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#050708",
-  "theme_color": "#050708",
-  "icons": [
-    {
-      "src": "./perfmaster-icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+  "background_color": "#0a0e17",
+  "theme_color": "#0a0e17",
+  "icons": [{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
 }

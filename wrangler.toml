@@ -1,0 +1,15 @@
+name = "perfmaster-api"
+main = "src/index.js"
+compatibility_date = "2026-11-15"
+workers_dev = true
+
+[[d1_databases]]
+binding = "PERFMASTER_DB"
+database_name = "perfmaster_db"
+database_id = "bafad4ed-4a39-43db-a4a9-906a6a36fd7d"
+migrations_dir = "migrations"
+
+[vars]
+# Remplacer par l'origine exacte de la PWA publiée.
+PERFMASTER_ORIGIN = "https://perfmaster.pages.dev"
+# Ne pas mettre de secret ici. Les secrets se configurent avec wrangler secret put.

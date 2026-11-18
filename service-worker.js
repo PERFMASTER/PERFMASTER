@@ -1,34 +1,39 @@
-const PM_CACHE = 'perfmaster-cache-20261115-r8';
-self.addEventListener('install', event => { self.skipWaiting(); });
+const CACHE_NAME = 'perfmaster-server-ready-v1';
+const CORE = ['./', './index.html', './manifest.webmanifest', './service-worker.js', './icon.svg'];
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE).catch(()=>{})));
+  self.skipWaiting();
+});
 self.addEventListener('activate', event => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k.startsWith('perfmaster-cache-') && k !== PM_CACHE).map(k => caches.delete(k)));
+  event.waitUntil((async()=>{
+    const keys=await caches.keys();
+    await Promise.all(keys.filter(k=>k.startsWith('perfmaster-')&&k!==CACHE_NAME).map(k=>caches.delete(k)));
     await self.clients.claim();
   })());
 });
 self.addEventListener('fetch', event => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;
-  const isDocument = req.mode === 'navigate' || url.pathname.endsWith('/index.html') || url.pathname.endsWith('/');
-  event.respondWith((async () => {
-    const cache = await caches.open(PM_CACHE);
-    if (isDocument) {
-      try {
-        const fresh = await fetch(new Request(req, { cache: 'no-store' }));
-        if (fresh && fresh.ok) await cache.put(req, fresh.clone());
-        return fresh;
-      } catch (err) {
-        return (await cache.match(req)) || (await cache.match('./index.html')) || Response.error();
-      }
-    }
-    const cached = await cache.match(req);
-    const update = fetch(req).then(async response => {
-      if (response && response.ok) await cache.put(req, response.clone());
-      return response;
-    });
-    return cached || update;
+  const req=event.request, url=new URL(req.url);
+  if(req.method!=='GET'||url.origin!==self.location.origin)return;
+  if(req.mode==='navigate'){
+    event.respondWith(fetch(req).then(res=>{if(res.ok)caches.open(CACHE_NAME).then(c=>c.put('./index.html',res.clone()));return res;}).catch(()=>caches.match('./index.html')));
+    return;
+  }
+  event.respondWith(caches.match(req).then(hit=>hit||fetch(req).then(res=>{if(res.ok)caches.open(CACHE_NAME).then(c=>c.put(req,res.clone()));return res;})));
+});
+self.addEventListener('push', event => {
+  let data={title:'PERFMASTER',body:'Vous avez un rappel.',url:'./'};
+  try{if(event.data)data={...data,...event.data.json()};}catch(e){try{data.body=event.data.text()}catch(_){}}
+  event.waitUntil(self.registration.showNotification(data.title||'PERFMASTER',{
+    body:data.body||'Vous avez un rappel.', icon:'./icon.svg', badge:'./icon.svg',
+    tag:data.tag||'perfmaster-push', renotify:false, data:{url:data.url||'./'}
+  }));
+});
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target=event.notification.data?.url||'./';
+  event.waitUntil((async()=>{
+    const list=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    for(const client of list){if('focus' in client){await client.focus();if('navigate' in client)await client.navigate(target);return;}}
+    if(self.clients.openWindow)await self.clients.openWindow(target);
   })());
 });

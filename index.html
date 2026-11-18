@@ -870,16 +870,28 @@ function setRest(){
 }
 function bmrCalc(kg){const p=PROF;if(+p.bmrm>0)return+p.bmrm;if(+p.bf>0)return Math.round(500+22*kg*(1-p.bf/100));return Math.round(10*kg+6.25*p.h-5*p.age+(p.sex=='f'?-161:5))}
 function dailyBaselineKcal(bmr,pal,wake,bed,sessions=[]){
- // Règle PERFMASTER : repos = BMR × PAL ; jour avec entraînement = BMR seul.
- // Les séances sont ensuite ajoutées séparément en calories NETTES dans gen()
- // et applyMultiSessionEnergy(), sans appliquer le PAL une deuxième fois.
- const hasTraining=(sessions||[]).some(x=>{const c=x&&x.cfg||x||{};return Number(c.dur)>0;});
- if(hasTraining)return Math.round(Math.max(0,Number(bmr)||0));
+ // Le PAL couvre l'activité hors entraînement pendant la période éveillée.
+ // On ne retire du PAL que le temps réellement occupé par une séance d'au moins
+ // 60 min : une séance courte ou à dépense minime ne fait donc pas disparaître
+ // artificiellement tout le coefficient d'activité de la journée.
  const toMin=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})$/);return m?Math.max(0,Math.min(1440,+m[1]*60+(+m[2]))):null};
  let w=toMin(wake),b=toMin(bed);if(w===null)w=450;if(b===null)b=1350;
  let awake=(b-w+1440)%1440;if(awake<600||awake>1080)awake=960;
  const intervals=[];
- (sessions||[]).forEach(x=>{const c=x&&x.cfg||x||{},st=toMin(c.ride||c.start);const h=Math.max(0,Math.min(24,Number(c.dur)||0));if(st===null||!h)return;const a=(st-w+1440)%1440,z=Math.min(awake,a+h*60);if(a<awake&&z>a)intervals.push([a,z]);});
+ (sessions||[]).forEach(x=>{const c=x&&x.cfg||x||{},st=toMin(c.ride||c.start);const h=Math.max(0,Math.min(24,Number(c.dur)||0));
+   // Estimation nette de secours pour reconnaître une séance longue mais
+   // presque sans dépense : dépense brute estimée moins le repos déjà inclus au BMR.
+   const kg=Number($('kg')?.value)||70, restKcal=(Number(bmr)||0)*h/24;
+   let gross=0;
+   if(c.sport==='bike')gross=Number(c.watts)>0?(Number(c.watts)*h*3.6)/(0.23*4.184):kg*7*h;
+   else if(c.sport==='run'){const m=String(c.pace||'5:30').match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60+(+m[2]))/60:5.5;gross=kg*(60/Math.max(2.5,pace))*h;}
+   else if(c.sport==='strength')gross=kg*({light:3.5,moderate:5,hard:6}[c.strengthIntensity]||5)*h;
+   else gross=kg*({easy:6,moderate:8,hard:10}[c.enduranceIntensity]||8)*h;
+   const net=Number.isFinite(+c.netKcal)?+c.netKcal:Math.max(0,gross-restKcal);
+   // < 1 h ou dépense nette < 100 kcal : le PAL reste entièrement compté.
+   if(h<1 || net<100 || st===null)return;
+   const a=(st-w+1440)%1440,z=Math.min(awake,a+h*60);if(a<awake&&z>a)intervals.push([a,z]);
+ });
  intervals.sort((a,b)=>a[0]-b[0]);let covered=0,last=-1;
  intervals.forEach(([a,z])=>{const start=Math.max(a,last);if(z>start)covered+=z-start;last=Math.max(last,z)});
  const nonTraining=Math.max(0,awake-Math.min(awake,covered));
@@ -899,7 +911,7 @@ try{if(!localStorage.getItem('gb27lang'))localStorage.setItem('gb27lang','fr')}c
 let uiTranslationBusy=false;const uiLangObserver=new MutationObserver(()=>{if(uiTranslationBusy)return;uiTranslationBusy=true;try{applyUiTranslations()}finally{uiTranslationBusy=false}});
 function startUiTranslation(){applyUiTranslations();uiLangObserver.observe(document.body,{childList:true,subtree:true,characterData:true})}
 if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',startUiTranslation);else startUiTranslation();
-function openProf(){const p=PROF;openSheet(`<div class='mh'><div class='mt'>⚙️ Profil</div><button class='x' onclick='closeSheet()'>✕</button></div><div class='f full'><label>Langue / Language</label><select id='uiLang' onchange='setUiLanguage(this.value)'><option value='fr'>Français</option><option value='en'>English</option></select></div><div class='fg'><div class='f'><label>Nom</label><input id='pn' value='${p.name||''}'></div><div class='f'><label>Sexe</label><select id='ps'><option value='m' ${p.sex=='m'?'selected':''}>Homme</option><option value='f' ${p.sex=='f'?'selected':''}>Femme</option></select></div><div class='f'><label>Âge</label><input type='number' id='pa' value='${p.age}'></div><div class='f'><label>Taille (cm)</label><input type='number' id='ph' value='${p.h}'></div><div class='f'><label>Poids (kg)</label><input type='number' id='pk' value='${$('kg').value}'></div><div class='f'><label>FTP (W)</label><input type='number' id='pf' value='${$('ftp').value}'></div><div class='f'><label>% gras (optionnel)</label><input type='number' id='pb' value='${p.bf||''}'></div><div class='f'><label>BMR mesuré (optionnel)</label><input type='number' id='pm' value='${p.bmrm||''}'></div><div class='f full'><label>Glucides habituels au déjeuner (g, optionnel)</label><input type='number' id='pbk' value='${p.bkC||''}'></div><div class='f'><label>Heure habituelle du souper</label><input type='time' id='pDinner' value='${CFG.dinnerTime||'19:15'}'></div><div class='f'><label>Heure habituelle du coucher</label><input type='time' id='pBed' value='${CFG.bedTime||'22:30'}'></div><div class='f full'><label>Activité hors vélo</label><select id='pp'>${[[1.3,'Sédentaire (bureau)'],[1.4,'Modérée'],[1.5,'Très active']].map(o=>`<option value='${o[0]}' ${p.pal==o[0]?'selected':''}>${o[1]} ×${o[0]}</option>`).join('')}</select></div></div><div class='f full' style='margin:.7rem 0'><label class='cc'><input type='checkbox' id='pMealSuggestions' ${CFG.mealSuggestions===false?'':'checked'} style='width:auto'><span>Afficher les suggestions de repas</span></label></div><div class='hd'>Connexions aux plateformes</div>
+function openProf(){const p=PROF;openSheet(`<div class='mh'><div class='mt'>⚙️ Profil</div><button class='x' onclick='closeSheet()'>✕</button></div><div class='f full'><label>Langue / Language</label><select id='uiLang' onchange='setUiLanguage(this.value)'><option value='fr'>Français</option><option value='en'>English</option></select></div><div class='fg'><div class='f'><label>Nom</label><input id='pn' value='${p.name||''}'></div><div class='f'><label>Sexe</label><select id='ps'><option value='m' ${p.sex=='m'?'selected':''}>Homme</option><option value='f' ${p.sex=='f'?'selected':''}>Femme</option></select></div><div class='f'><label>Âge</label><input type='number' id='pa' value='${p.age}'></div><div class='f'><label>Taille (cm)</label><input type='number' id='ph' value='${p.h}'></div><div class='f'><label>Poids (kg)</label><input type='number' id='pk' value='${$('kg').value}'></div><div class='f'><label>FTP (W)</label><input type='number' id='pf' value='${$('ftp').value}'></div><div class='f'><label>% gras (optionnel)</label><input type='number' id='pb' value='${p.bf||''}'></div><div class='f'><label>BMR mesuré (optionnel)</label><input type='number' id='pm' value='${p.bmrm||''}'></div><div class='f full'><label>Glucides habituels au déjeuner (g, optionnel)</label><input type='number' id='pbk' value='${p.bkC||''}'></div><div class='f'><label>Heure habituelle du souper</label><input type='time' id='pDinner' value='${CFG.dinnerTime||'19:15'}'></div><div class='f'><label>Heure habituelle du coucher</label><input type='time' id='pBed' value='${CFG.bedTime||'22:30'}'></div><div class='f full'><label>Activité hors vélo</label><select id='pp'>${[[1.3,'Sédentaire (bureau)'],[1.4,'Modérée'],[1.5,'Très active']].map(o=>`<option value='${o[0]}' ${p.pal==o[0]?'selected':''}>${o[1]} ×${o[0]}</option>`).join('')}</select></div></div><div class='f full' style='margin:.7rem 0'><label class='cc'><input type='checkbox' id='pMealSuggestions' ${CFG.mealSuggestions===false?'':'checked'} style='width:auto'><span>Afficher les suggestions de repas</span></label></div><div class='hd'>☁️ Serveur PERFMASTER</div><div class='f full'><label>Adresse de l’API Cloudflare Worker</label><input id='perfApiUrl' type='url' placeholder='https://perfmaster-api.VOTRE-COMPTE.workers.dev' value='${PERFMASTER_API_URL}'></div><button class='btn' style='background:var(--cd);color:var(--t);border:1px solid var(--bd)' onclick='savePerfmasterServerConfig()'>Enregistrer l’adresse du serveur</button><button class='btn' style='background:var(--cd);color:var(--t);border:1px solid var(--bd)' onclick='testPerfmasterServer()'>Tester la connexion au serveur</button><div class='ex' id='serverStatus'>Serveur : ${PERFMASTER_API_URL?'adresse configurée':'non configuré'}</div><div class='hd'>🔔 Notifications PERFMASTER</div><div class='sb'>Autorisez les notifications pour recevoir les rappels de séance, de repas et de récupération. Le bouton de test vérifie immédiatement l'affichage sur cet appareil.</div><button class='btn b' onclick='enablePerfmasterNotifications()'>Activer les notifications</button><button class='btn' style='background:var(--cd);color:var(--t);border:1px solid var(--bd)' onclick='testPerfmasterNotification()'>Envoyer une notification test</button><div class='ex' id='notificationStatus'>État : ${('Notification' in window)?Notification.permission:'non pris en charge par ce navigateur'}</div><div class='hd'>Connexions aux plateformes</div>
 <div class='sb'>État actuel : cette version peut lire des données via Intervals.icu avec ta clé API. Ce n’est pas encore une connexion OAuth officielle directe à Garmin, Wahoo ou WHOOP. N’entre jamais un mot de passe Garmin/WHOOP ici.</div>
 <div class='ex'>Pour activer des connexions directes par compte, PERFMASTER devra être hébergé avec un serveur sécurisé, des identifiants développeur approuvés et OAuth. Les clés privées ne doivent jamais être stockées dans le HTML ou dans localStorage.</div>
 <div class='ex'><a href='https://developerportal.garmin.com/developer-programs/connect-developer-api' target='_blank' rel='noopener' style='color:var(--cy)'>Garmin Connect Developer</a> · <a href='https://developers.wahooligan.com/cloud' target='_blank' rel='noopener' style='color:var(--cy)'>Wahoo Cloud API</a> · <a href='https://developer.whoop.com/docs/developing/overview/' target='_blank' rel='noopener' style='color:var(--cy)'>WHOOP Developer</a></div>
@@ -909,6 +921,41 @@ function openProf(){const p=PROF;openSheet(`<div class='mh'><div class='mt'>⚙�
 <div class='ex'><a href='https://pubmed.ncbi.nlm.nih.gov/36404133/' target='_blank' rel='noopener' style='color:var(--cy)'>Étude : dépense énergétique des cyclistes professionnels validée par eau doublement marquée (2022)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/41911915/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue UCI : besoins énergétiques et disponibilité énergétique en cyclisme (2026)</a><br><a href='https://pubmed.ncbi.nlm.nih.gov/41911900/' target='_blank' rel='noopener' style='color:var(--cy)'>Revue UCI : nutrition de course sur route (2026)</a></div>
 <div class='sb'>La logique des repas et les cibles nutritionnelles existantes ont été conservées dans cette révision : je ne les ai pas recalibrées sans données individuelles validées.</div>
 <button class='btn' onclick='saveProf()'>Enregistrer</button><div class='hd'>Données & séances</div><button class='btn b' onclick='$("sf").click()'>Importer une séance (.tcx / .gpx)</button><input type='file' id='sf' accept='.tcx,.gpx,.xml' style='display:none' onchange='impSess(this)'><button class='btn b' onclick='expData()'>Exporter mes données</button><button class='btn b' onclick='$("sd").click()'>Importer mes données</button><input type='file' id='sd' accept='.json' style='display:none' onchange='impData(this)'><button class='btn' style='background:var(--cd);color:var(--t);border:1px solid var(--bd)' onclick='logout()'>Se déconnecter (${ME})</button>`);profInfo()}
+let PERFMASTER_API_URL=localStorage.getItem('perfmaster_api_url')||'';
+function savePerfmasterServerConfig(){
+ const input=$('perfApiUrl');const value=String(input?.value||'').trim().replace(/\/$/,'');
+ if(value&&!/^https:\/\//i.test(value)){toast('L’adresse du serveur doit commencer par https://');return false;}
+ PERFMASTER_API_URL=value;try{localStorage.setItem('perfmaster_api_url',value)}catch(e){toast('Impossible de sauvegarder la configuration');return false;}
+ const el=$('serverStatus');if(el)el.textContent='Serveur : '+(value?'adresse enregistrée':'non configuré');toast('Adresse du serveur enregistrée ✓');return true;
+}
+async function testPerfmasterServer(){
+ if(!PERFMASTER_API_URL){toast('Configurez d’abord l’adresse du Worker');return false;}
+ const el=$('serverStatus');if(el)el.textContent='Serveur : vérification…';
+ try{const r=await fetch(PERFMASTER_API_URL+'/health',{cache:'no-store'});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Réponse invalide');if(el)el.textContent='Serveur : en ligne · D1 '+(j.database?'connectée':'non connectée');toast('Connexion au serveur réussie ✓');return true;}
+ catch(e){if(el)el.textContent='Serveur : impossible de joindre le Worker';toast('Connexion impossible : vérifiez l’URL et le déploiement');return false;}
+}
+async function enablePerfmasterNotifications(){
+ if(!('Notification' in window)||!('serviceWorker' in navigator)){toast('Notifications non prises en charge sur ce navigateur');return false;}
+ try{
+  const permission=await Notification.requestPermission();
+  if(permission!=='granted'){const el=$('notificationStatus');if(el)el.textContent='État : permission refusée';toast('Autorisez les notifications dans les paramètres du téléphone');return false;}
+  const reg=await navigator.serviceWorker.register('./service-worker.js');await navigator.serviceWorker.ready;
+  const el=$('notificationStatus');if(el)el.textContent='État : autorisées sur cet appareil';
+  if(PERFMASTER_API_URL){
+   const key=localStorage.getItem('perfmaster_vapid_public_key');
+   if(key&&reg.pushManager){let sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:Uint8Array.from(atob(key.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0))});
+    const token=localStorage.getItem('perfmaster_server_token');if(token)await fetch(PERFMASTER_API_URL+'/api/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(sub.toJSON())});
+   }
+  }
+  await reg.showNotification('PERFMASTER activé',{body:'Les notifications sont autorisées sur cet appareil.',icon:'./icon.svg',tag:'perfmaster-enabled'});
+  toast('Notifications activées ✓');return true;
+ }catch(e){console.error('Notifications PERFMASTER',e);toast('Activation impossible : '+(e.message||'vérifiez les autorisations'));return false;}
+}
+async function testPerfmasterNotification(){
+ try{if(!('Notification' in window)){toast('Notifications non prises en charge');return;}if(Notification.permission!=='granted'){const ok=await enablePerfmasterNotifications();if(!ok)return;}
+ const reg=await navigator.serviceWorker.ready;await reg.showNotification('Test PERFMASTER',{body:'Votre téléphone affiche correctement les notifications.',icon:'./icon.svg',tag:'perfmaster-test',data:{url:'./'}});toast('Notification test envoyée ✓');
+ }catch(e){console.error(e);toast('Échec du test de notification');}
+}
 function saveProf(){CFG.dinnerTime=$('pDinner').value||'19:15';CFG.bedTime=$('pBed').value||'22:30';CFG.mealSuggestions=$('pMealSuggestions')?$('pMealSuggestions').checked:true;try{localStorage.setItem('gb27cfg',JSON.stringify(CFG))}catch(e){}PROF=Object.assign(PROF,{name:$('pn').value,sex:$('ps').value,age:+$('pa').value||30,h:+$('ph').value||178,bf:+$('pb').value||0,bmrm:+$('pm').value||0,pal:+$('pp').value,bkC:+$('pbk').value||0,ikey:$('pik').value.trim(),iid:$('pii').value.trim()||'0'});$('kg').value=+$('pk').value||72;$('ftp').value=+$('pf').value||280;try{localStorage.setItem('gb27prof',JSON.stringify(PROF))}catch(e){}if(!save())return;closeSheet();render();startAutoSyncIv();toast('Profil enregistré ✓')}
 function pmc(P){const sel=$('day').value,ft=+$('ftp').value||280,T=k=>{const hasList=Object.prototype.hasOwnProperty.call(SESSIONS,k)&&Array.isArray(SESSIONS[k]),entries=hasList&&SESSIONS[k].length?SESSIONS[k]:(PLANS[k]&&Number(PLANS[k].dur)>0?[{cfg:PLANS[k]}]:[]);return entries.reduce((sum,x)=>{const c=x&&x.cfg;if(!c)return sum;const dur=Math.max(0,Number(c.dur)||0),sport=c.sport||'bike';if(!dur||sport==='strength')return sum;const level=c.enduranceIntensity||'moderate',i=sport==='bike'?(Number(c.watts)>0?Number(c.watts)/ft:.7):sport==='run'?.75:sport==='swim'?({easy:.55,moderate:.7,hard:.9}[level]||.7):sport==='ski'?({easy:.55,moderate:.75,hard:.95}[level]||.75):0;return sum+dur*i*i*100;},0)};
  let c=0,a=0;const o=[],s0=new Date(sel+'T12:00');
@@ -1234,14 +1281,19 @@ setDay(0);loadDay();render();updateSportFields();if(sessionStorage.getItem('gb27
 window.addEventListener('error',e=>{console.error('Erreur d’interface PERFMASTER:',e.error||e.message);if(window.__ok&&$('ts'))toast('Une action a rencontré une erreur. Réessayez; vos données locales ne sont pas réinitialisées.');});
 window.addEventListener('unhandledrejection',e=>{console.error('Action PERFMASTER interrompue:',e.reason);if(window.__ok&&$('ts'))toast('Une opération a échoué. L’application reste utilisable.');});
 </script><script>
-/* Navigation directe : chaque bouton appelle explicitement la même fonction globale. */
-document.querySelectorAll('nav button.nb[data-t]').forEach(button=>{
- button.addEventListener('click',event=>{
-  event.preventDefault();
-  const target=button.dataset.t;
-  if(typeof window.tab==='function')window.tab(target);
- });
-});
+/* Navigation centralisée : un seul gestionnaire en capture évite les doubles
+   déclenchements et garantit que le clic tactile atteint toujours l'onglet. */
+document.querySelectorAll('nav button.nb[data-t]').forEach(button=>button.removeAttribute('onclick'));
+document.querySelector('nav[aria-label="Navigation principale"]')?.addEventListener('click',event=>{
+ const button=event.target.closest('button.nb[data-t]');
+ if(!button)return;
+ event.preventDefault();event.stopPropagation();
+ const target=button.dataset.t;
+ if(typeof window.tab==='function'){
+   const ok=window.tab(target);
+   if(ok){document.querySelectorAll('nav button.nb[data-t]').forEach(b=>{b.classList.toggle('on',b===button);if(b===button)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});}
+ }
+},true);
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));}</script>
 </body></html>
