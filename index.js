@@ -110,7 +110,7 @@ export default {
   if(request.method==='OPTIONS') return new Response(null,{status:204,headers});
   const url=new URL(request.url), path=url.pathname.replace(/\/+$/,'')||'/';
   try {
-   if(path==='/health' && request.method==='GET') return json({ok:true,service:'PERFMASTER API',database:!!env.PERFMASTER_DB},200,headers);
+   if(path==='/health' && request.method==='GET') { try { await getDb(env).prepare('SELECT 1').first(); return json({ok:true,service:'PERFMASTER API',database:true},200,headers); } catch(error) { return json({ok:false,service:'PERFMASTER API',database:false,error:String(error?.message||error)},500,headers); } }
    if(path==='/api/auth/register' && request.method==='POST') return authRoute(request,env,'register').then(r=>withHeaders(r,headers));
    if(path==='/api/auth/login' && request.method==='POST') return authRoute(request,env,'login').then(r=>withHeaders(r,headers));
    if(path==='/api/auth/logout' && request.method==='POST') { const u=await authUser(request,env); if(!u)return json({error:'Non authentifié'},401,headers); const token=request.headers.get('Authorization').slice(7); await getDb(env).prepare('DELETE FROM sessions WHERE token_hash=?').bind(await digest(token)).run(); return json({ok:true},200,headers); }

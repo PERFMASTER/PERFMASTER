@@ -5,7 +5,7 @@ workers_dev = true
 
 [[d1_databases]]
 binding = "PERFMASTER_DB"
-database_name = "perfmaster_db"
+database_name = "perfmaster-db"
 database_id = "bafad4ed-4a39-43db-a4a9-906a6a36fd7d"
 migrations_dir = "migrations"
 
