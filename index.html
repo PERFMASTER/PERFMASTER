@@ -488,7 +488,7 @@ function gen(gd){gd=gd||$('day').value;
  }
  const bon={vo2:.8,tempo:.5,sprint:.5};
  let cKg=(rest?4:4.8+TSS*.012)+sp.reduce((n,s)=>n+bon[s]*.5,0)+0;if(rcx.load)cKg=Math.max(cKg,rcx.load-rate*dur/kg);else cKg+=ctx72.mealCarbBoostKg;cKg=Math.min(cKg,10.5);
- const intraC=Math.round(rate*dur),BMR=bmrCalc(kg),NE=dailyBaselineKcal(BMR,PROF.pal,$('wake').value,CFG.bedTime||'22:30',dur>0?[{cfg:{ride:$('ride').value,dur}}]:[]),exerciseKcal=(()=>{if(sport==="bike")return watts>0?(watts*dur*3.6)/(0.23*4.184):kg*7*dur;if(sport==="run"){const m=String($("pace").value||"5:30").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:5.5;return kg*(60/Math.max(2.5,pace))*dur;}const level=$("enduranceIntensity")?.value||"moderate",metMap={easy:6,moderate:8,hard:10};if(sport==="swim"){const m=String($("swimPace")?.value||"2:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:2;const paceFactor=Math.max(.85,Math.min(1.15,2/Math.max(.8,pace)));return kg*(metMap[level]||8)*paceFactor*dur;}if(sport==="ski"){const m=String($("skiPace")?.value||"6:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:6;const paceFactor=Math.max(.8,Math.min(1.25,6/Math.max(2.5,pace)));return kg*({easy:6,moderate:8,hard:11}[level]||8)*paceFactor*dur;}const intensity=$("strengthIntensity")?.value||"moderate";return kg*({light:3.5,moderate:5,hard:6}[intensity]||5)*dur;})(),EE=Math.round(NE+(rest?0:Math.max(0,exerciseKcal-BMR*dur/24))),EEFinal=Math.round((PLANS[gd]&&PLANS[gd].eeOverride>0)?NE+Math.max(0,PLANS[gd].eeOverride-BMR*dur/24):EE),def=mass?-250:MODE==='pertepoids'?300:0;const Pt=Math.round(proteinTargetGkg(Math.max(0,exerciseKcal-BMR*dur/24),kg,!rest)*kg);let offC=Math.round(cKg*kg);const balanced=balanceEnergyMacros(EEFinal-def,intraC,offC,Pt,kg);offC=balanced.carbs;const Ft=balanced.fat;
+ const intraC=Math.round(rate*dur),BMR=bmrCalc(kg),NE=dailyBaselineKcal(BMR,PROF.pal,$('wake').value,CFG.bedTime||'22:30',dur>0?[{cfg:{ride:$('ride').value,dur,sport,watts,pace:$('pace')?.value,swimPace:$('swimPace')?.value,skiPace:$('skiPace')?.value,strengthIntensity:$('strengthIntensity')?.value,enduranceIntensity:$('enduranceIntensity')?.value}}]:[]),exerciseKcal=(()=>{if(sport==="bike")return watts>0?(watts*dur*3.6)/(0.23*4.184):kg*7*dur;if(sport==="run"){const m=String($("pace").value||"5:30").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:5.5;return kg*(60/Math.max(2.5,pace))*dur;}const level=$("enduranceIntensity")?.value||"moderate",metMap={easy:6,moderate:8,hard:10};if(sport==="swim"){const m=String($("swimPace")?.value||"2:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:2;const paceFactor=Math.max(.85,Math.min(1.15,2/Math.max(.8,pace)));return kg*(metMap[level]||8)*paceFactor*dur;}if(sport==="ski"){const m=String($("skiPace")?.value||"6:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:6;const paceFactor=Math.max(.8,Math.min(1.25,6/Math.max(2.5,pace)));return kg*({easy:6,moderate:8,hard:11}[level]||8)*paceFactor*dur;}const intensity=$("strengthIntensity")?.value||"moderate";return kg*({light:3.5,moderate:5,hard:6}[intensity]||5)*dur;})(),EE=Math.round(NE+(rest?0:Math.max(0,exerciseKcal-BMR*dur/24))),EEFinal=Math.round((PLANS[gd]&&PLANS[gd].eeOverride>0)?NE+Math.max(0,PLANS[gd].eeOverride-BMR*dur/24):EE),def=mass?-250:MODE==='pertepoids'?300:0;const Pt=Math.round(proteinTargetGkg(Math.max(0,exerciseKcal-BMR*dur/24),kg,!rest)*kg);let offC=Math.round(cKg*kg);const balanced=balanceEnergyMacros(EEFinal-def,intraC,offC,Pt,kg);offC=balanced.carbs;const Ft=balanced.fat;
  // --- horaires ---
  const ev=[];const add=(t,type,label,x)=>ev.push(Object.assign({t:Math.round(t/5)*5,type,label},x));
  let needL=true;
@@ -870,32 +870,39 @@ function setRest(){
 }
 function bmrCalc(kg){const p=PROF;if(+p.bmrm>0)return+p.bmrm;if(+p.bf>0)return Math.round(500+22*kg*(1-p.bf/100));return Math.round(10*kg+6.25*p.h-5*p.age+(p.sex=='f'?-161:5))}
 function dailyBaselineKcal(bmr,pal,wake,bed,sessions=[]){
- // Le PAL couvre l'activité hors entraînement pendant la période éveillée.
- // On ne retire du PAL que le temps réellement occupé par une séance d'au moins
- // 60 min : une séance courte ou à dépense minime ne fait donc pas disparaître
- // artificiellement tout le coefficient d'activité de la journée.
- const toMin=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})$/);return m?Math.max(0,Math.min(1440,+m[1]*60+(+m[2]))):null};
- let w=toMin(wake),b=toMin(bed);if(w===null)w=450;if(b===null)b=1350;
- let awake=(b-w+1440)%1440;if(awake<600||awake>1080)awake=960;
- const intervals=[];
- (sessions||[]).forEach(x=>{const c=x&&x.cfg||x||{},st=toMin(c.ride||c.start);const h=Math.max(0,Math.min(24,Number(c.dur)||0));
-   // Estimation nette de secours pour reconnaître une séance longue mais
-   // presque sans dépense : dépense brute estimée moins le repos déjà inclus au BMR.
-   const kg=Number($('kg')?.value)||70, restKcal=(Number(bmr)||0)*h/24;
-   let gross=0;
-   if(c.sport==='bike')gross=Number(c.watts)>0?(Number(c.watts)*h*3.6)/(0.23*4.184):kg*7*h;
-   else if(c.sport==='run'){const m=String(c.pace||'5:30').match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60+(+m[2]))/60:5.5;gross=kg*(60/Math.max(2.5,pace))*h;}
-   else if(c.sport==='strength')gross=kg*({light:3.5,moderate:5,hard:6}[c.strengthIntensity]||5)*h;
-   else gross=kg*({easy:6,moderate:8,hard:10}[c.enduranceIntensity]||8)*h;
-   const net=Number.isFinite(+c.netKcal)?+c.netKcal:Math.max(0,gross-restKcal);
-   // < 1 h ou dépense nette < 100 kcal : le PAL reste entièrement compté.
-   if(h<1 || net<100 || st===null)return;
-   const a=(st-w+1440)%1440,z=Math.min(awake,a+h*60);if(a<awake&&z>a)intervals.push([a,z]);
+ // Le coefficient PAL est conservé si la durée totale est inférieure à 1 h
+ // ou si la dépense nette totale de la journée est très faible (< 100 kcal).
+ // Dès que l'entraînement atteint 1 h ET 100 kcal nettes, on utilise le BMR
+ // seul comme base, puis les calories nettes des séances sont ajoutées séparément.
+ const kg=Number($('kg')?.value)||70;
+ let totalDuration=0,totalNet=0;
+ (sessions||[]).forEach(x=>{
+  const c=x&&x.cfg||x||{},h=Math.max(0,Math.min(24,Number(c.dur)||0));
+  if(!h)return;
+  totalDuration+=h;
+  const restKcal=(Number(bmr)||0)*h/24;
+  let gross=0;
+  if(Number(c.eeOverride)>0)gross=Number(c.eeOverride);
+  else if(c.sport==='bike')gross=Number(c.watts)>0?(Number(c.watts)*h*3.6)/(0.23*4.184):kg*7*h;
+  else if(c.sport==='run'){
+   const m=String(c.pace||'5:30').match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60+(+m[2]))/60:5.5;
+   gross=kg*(60/Math.max(2.5,pace))*h;
+  }else if(c.sport==='strength')gross=kg*({light:3.5,moderate:5,hard:6}[c.strengthIntensity]||5)*h;
+  else if(c.sport==='swim'){
+   const m=String(c.swimPace||'2:00').match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60+(+m[2]))/60:2;
+   const level=c.enduranceIntensity||'moderate',met={easy:6,moderate:8,hard:10}[level]||8;
+   gross=kg*met*Math.max(.85,Math.min(1.15,2/Math.max(.8,pace)))*h;
+  }else if(c.sport==='ski'){
+   const m=String(c.skiPace||'6:00').match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60+(+m[2]))/60:6;
+   const level=c.enduranceIntensity||'moderate',met={easy:6,moderate:8,hard:11}[level]||8;
+   gross=kg*met*Math.max(.8,Math.min(1.25,6/Math.max(2.5,pace)))*h;
+  }else gross=kg*8*h;
+  const net=Number.isFinite(Number(c.netKcal))?Number(c.netKcal):Math.max(0,gross-restKcal);
+  totalNet+=Math.max(0,net);
  });
- intervals.sort((a,b)=>a[0]-b[0]);let covered=0,last=-1;
- intervals.forEach(([a,z])=>{const start=Math.max(a,last);if(z>start)covered+=z-start;last=Math.max(last,z)});
- const nonTraining=Math.max(0,awake-Math.min(awake,covered));
- return Math.round(Math.max(0,Number(bmr)||0)*(1+Math.max(0,(Number(pal)||1)-1)*(nonTraining/awake)));
+ const base=Math.max(0,Number(bmr)||0);
+ if(totalDuration<1||totalNet<100)return Math.round(base*Math.max(1,Number(pal)||1));
+ return Math.round(base);
 }
 function profInfo(){const kg=+$('pk').value||72,b=bmrCalc(kg),wake=CFG.wake||'07:30',bed=CFG.bedTime||'22:30',rest=dailyBaselineKcal(b,PROF.pal,wake,bed,[]),ride=dailyBaselineKcal(b,PROF.pal,wake,bed,[{cfg:{ride:'09:30',dur:4}}]);$('pinfo').innerHTML=`Métabolisme de base : <b>${b} kcal/24 h</b> (${PROF.bmrm>0?'mesuré':PROF.bf>0?'Cunningham, masse maigre':'Mifflin-St Jeor'})<br>Base quotidienne estimée au repos : <b>${rest} kcal</b><br>Base quotidienne avec 4 h de sport : <b>${ride} kcal</b> (BMR seul), avant d’ajouter les calories nettes de la séance.<br><small>Jour de repos : BMR × PAL. Jour avec entraînement : BMR seul + calories nettes de toutes les séances, sans coefficient PAL.</small>`}
 
