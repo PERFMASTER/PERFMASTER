@@ -425,12 +425,12 @@ function distributeMealMacros(meals,targets){
 }
 
 function nutrition72hContext(dayKey,ftpValue){
- // Fenêtre glissante de 72 h : les 24 h précédant la journée cible,
- // la journée cible, puis les 24 h suivantes. Les séances du jour cible
- // sont calculées séparément par gen()/applyMultiSessionEnergy().
+ // Fenêtre glissante de 72 h : veille, journée cible et lendemain.
+ // La veille tient compte des apports réellement enregistrés; le lendemain
+ // sert à anticiper le carburant nécessaire avant une grosse séance.
  const DAY=86400000,anchor=new Date(dayKey+'T00:00:00').getTime(),start=anchor-DAY,end=anchor+2*DAY;
  const now=new Date(),todayKey=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
- const ftp=Math.max(1,Number(ftpValue)||280);
+ const ftp=Math.max(1,Number(ftpValue)||280),kg=Math.max(1,Number($('kg')?.value)||70);
  const dayKeyAt=ms=>{const d=new Date(ms);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
  const entriesFor=d=>{if(Object.prototype.hasOwnProperty.call(SESSIONS,d)&&Array.isArray(SESSIONS[d]))return SESSIONS[d];const p=PLANS[d];return p&&Number(p.dur)>0?[{cfg:p,planned:d<todayKey?false:true}]:[]};
  const sessionLoad=(cfg,duration)=>{
@@ -442,37 +442,68 @@ function nutrition72hContext(dayKey,ftpValue){
   else if(sport==='strength')intensity=({light:.45,moderate:.6,hard:.75}[cfg.strengthIntensity||'moderate']||.6);
   return duration*intensity*intensity*100;
  };
- let previousLoad=0,nextLoad=0,previousDuration=0,nextDuration=0;
- for(let offset=-2;offset<=1;offset++){
-  const d=dayKeyAt(anchor+offset*DAY),list=entriesFor(d);
+ const metricsFor=(d,side)=>{
+  let load=0,duration=0,intra=0,quality=0,hasTraining=false;
+  const list=entriesFor(d),race=RACES.find(r=>r.d===d&&r.o!=='-'),isRace=!!(race&&(race.o==='A'||race.o==='a'));
   for(const entry of list){
    const c=entry&&entry.cfg;if(!c)continue;
-   const duration=Math.max(0,Number(c.dur)||0);if(!duration)continue;
-   const clock=String(c.ride||'09:30');const match=clock.match(/^(\d{1,2}):(\d{2})$/);if(!match)continue;
-   const sessionStart=new Date(d+'T'+String(match[1]).padStart(2,'0')+':'+match[2]+':00').getTime();
-   const sessionEnd=sessionStart+duration*3600000;
-   const overlap=Math.max(0,Math.min(sessionEnd,end)-Math.max(sessionStart,start));if(!overlap)continue;
-   const portion=overlap/(duration*3600000),load=sessionLoad(c,duration)*portion,overlapHours=overlap/3600000;
-   if(sessionEnd<=anchor){
-    // Passé : ne compter que les séances terminées/confirmées. Pour une date
-    // future, les séances planifiées la veille restent des charges projetées.
-    const included=d<todayKey?entry.planned!==true:(dayKey>todayKey?true:entry.planned!==false);
-    if(included){previousLoad+=load;previousDuration+=overlapHours;}
-   }else if(sessionStart>=anchor+DAY){
-    // Futur : compter les séances planifiées, pas une séance déjà importée comme terminée.
-    const included=d>todayKey?entry.planned!==false:entry.planned!==true;
-    if(included){nextLoad+=load;nextDuration+=overlapHours;}
+   // Pour la veille, ne compter que les séances terminées; pour le lendemain,
+   // ne compter que les séances planifiées.
+   if(side==='previous'&&entry.planned===true)continue;
+   if(side==='next'&&entry.planned===false)continue;
+   const dur=Math.max(0,Number(c.dur)||0),sport=c.sport||'bike';if(!dur)continue;
+   hasTraining=true;duration+=dur;
+   const tss=sessionLoad(c,dur);load+=tss;
+   const intensity=sport==='bike'?(Number(c.watts)>0?Number(c.watts)/ftp:.7):sport==='run'?.75:sport==='swim'?({easy:.55,moderate:.7,hard:.9}[c.enduranceIntensity||'moderate']||.7):sport==='ski'?({easy:.55,moderate:.75,hard:.95}[c.enduranceIntensity||'moderate']||.75):({light:.45,moderate:.6,hard:.75}[c.strengthIntensity||'moderate']||.6);
+   const hard=intensity>=.85||/vo2|tempo|sprint/i.test((c.s1||'')+' '+(c.s2||''));
+   if(sport!=='strength'&&dur>=1){
+    let rate=0;
+    if(sport==='bike')rate=dur<=1.5?(hard?45:30):dur<=2.5?(hard?65:50):dur<=4?(hard?85:70):(hard?90:80);
+    else if(sport==='run')rate=dur<=1.5?(hard?40:25):dur<=2.5?(hard?55:40):55;
+    else if(sport==='swim'||sport==='ski')rate=dur<=1.5?(hard?40:25):dur<=2.5?(hard?55:40):60;
+    if(isRace)rate+=5;
+    const gut=Number(CFG.intraCeiling)||90;
+    if(sport==='bike'&&dur>2.5&&gut>90)rate+=gut>=120?20:10;
+    rate=Math.min(rate,sport==='bike'?gut:(sport==='run'?60:75));
+    intra+=rate*dur;
    }
+   const q=((c.s1||'')+' '+(c.s2||'')).toLowerCase();if(/vo2/.test(q))quality+=.4;if(/tempo|sprint/.test(q))quality+=.25;
   }
+  const baseKg=hasTraining?Math.min(10.5,4.8+load*.012+quality):4;
+  return {load,duration,intra,hasTraining,targetCarbs:baseKg*kg+intra};
+ };
+ const previousDay=dayKeyAt(anchor-DAY),nextDay=dayKeyAt(anchor+DAY);
+ const previous=metricsFor(previousDay,'previous'),next=metricsFor(nextDay,'next');
+ const previousDemand=previous.load>=150||previous.duration>=2.5;
+ const nextDemand=next.load>=150||next.duration>=2.5;
+ // Ne pas supposer un sous-apport si aucun journal alimentaire n'a été saisi.
+ let previousActual=null,previousShortfallG=0,recoveryCarbG=0;
+ const previousLogs=LOGS[previousDay];
+ if(previousDay<todayKey&&Array.isArray(previousLogs)&&previousLogs.length){
+  previousActual=previousLogs.reduce((sum,l)=>sum+Math.max(0,Number(l&&l.c)||0),0);
+  previousShortfallG=Math.max(0,previous.targetCarbs-previousActual);
+  // Récupérer 50 % du déficit estimé, avec un plafond de 0,75 g/kg.
+  if(previousShortfallG>=.5*kg)recoveryCarbG=Math.min(.75*kg,previousShortfallG*.5);
  }
- const previousDemand=previousLoad>=150||previousDuration>=2.5;
- const nextDemand=nextLoad>=150||nextDuration>=2.5;
- // +0.5 g/kg de glucides alimentaires après une charge élevée et/ou avant
- // une séance clé. Le carburant intra-séance reste calculé à part.
- const mealCarbBoostKg=(previousDemand?.5:0)+(nextDemand?.5:0);
- return {previousLoad:Math.round(previousLoad),nextLoad:Math.round(nextLoad),previousDuration:+previousDuration.toFixed(2),nextDuration:+nextDuration.toFixed(2),previousDemand,nextDemand,mealCarbBoostKg,windowStart:new Date(start).toISOString(),windowEnd:new Date(end).toISOString()};
+ // Précharger graduellement selon la charge prévue le lendemain.
+ let preloadCarbG=0;
+ if(next.load>=300||next.duration>=4.5)preloadCarbG=1.0*kg;
+ else if(next.load>=220||next.duration>=3.5)preloadCarbG=.75*kg;
+ else if(next.load>=150||next.duration>=2.5)preloadCarbG=.5*kg;
+ // Plafond combiné : la récupération du déficit et l'anticipation ne doivent
+ // pas provoquer une hausse excessive sur une seule journée.
+ const extraCarbG=Math.min(1.5*kg,recoveryCarbG+preloadCarbG);
+ const mealCarbBoostKg=extraCarbG/kg,extraEnergyKcal=Math.round(extraCarbG*4);
+ return {
+  previousLoad:Math.round(previous.load),nextLoad:Math.round(next.load),
+  previousDuration:+previous.duration.toFixed(2),nextDuration:+next.duration.toFixed(2),
+  previousDemand,nextDemand,previousActualCarbs:previousActual===null?null:Math.round(previousActual),
+  previousEstimatedCarbs:Math.round(previous.targetCarbs),previousShortfallG:Math.round(previousShortfallG),
+  recoveryCarbG:Math.round(recoveryCarbG),preloadCarbG:Math.round(preloadCarbG),
+  extraCarbG:Math.round(extraCarbG),extraEnergyKcal,mealCarbBoostKg,
+  windowStart:new Date(start).toISOString(),windowEnd:new Date(end).toISOString()
+ };
 }
-
 function gen(gd){gd=gd||$('day').value;
  const kg=+$("kg").value||70,W=tm($("wake").value),dur=Math.max(0,+$("dur").value||0),sport=$("sport").value||"bike",rest=dur==0,R=rest?1380:tm($("ride").value),watts=sport==="bike"?(+$("watts").value||0):0,
  sp=[$("s1").value,$("s2").value].filter(x=>x!="none"),hasQ=sp.some(x=>["vo2","tempo","sprint"].includes(x)),muscu=sport==="strength",
@@ -487,8 +518,8 @@ function gen(gd){gd=gd||$('day').value;
   const gut=Number(CFG.intraCeiling)||90;if(sport==='bike'&&dur>2.5&&gut>90)rate+=gut>=120?20:10;rate=Math.min(rate,sport==='bike'?gut:sport==='run'?60:75);
  }
  const bon={vo2:.8,tempo:.5,sprint:.5};
- let cKg=(rest?4:4.8+TSS*.012)+sp.reduce((n,s)=>n+bon[s]*.5,0)+0;if(rcx.load)cKg=Math.max(cKg,rcx.load-rate*dur/kg);else cKg+=ctx72.mealCarbBoostKg;cKg=Math.min(cKg,10.5);
- const intraC=Math.round(rate*dur),BMR=bmrCalc(kg),NE=dailyBaselineKcal(BMR,PROF.pal,$('wake').value,CFG.bedTime||'22:30',dur>0?[{cfg:{ride:$('ride').value,dur,sport,watts,pace:$('pace')?.value,swimPace:$('swimPace')?.value,skiPace:$('skiPace')?.value,strengthIntensity:$('strengthIntensity')?.value,enduranceIntensity:$('enduranceIntensity')?.value}}]:[]),exerciseKcal=(()=>{if(sport==="bike")return watts>0?(watts*dur*3.6)/(0.23*4.184):kg*7*dur;if(sport==="run"){const m=String($("pace").value||"5:30").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:5.5;return kg*(60/Math.max(2.5,pace))*dur;}const level=$("enduranceIntensity")?.value||"moderate",metMap={easy:6,moderate:8,hard:10};if(sport==="swim"){const m=String($("swimPace")?.value||"2:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:2;const paceFactor=Math.max(.85,Math.min(1.15,2/Math.max(.8,pace)));return kg*(metMap[level]||8)*paceFactor*dur;}if(sport==="ski"){const m=String($("skiPace")?.value||"6:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:6;const paceFactor=Math.max(.8,Math.min(1.25,6/Math.max(2.5,pace)));return kg*({easy:6,moderate:8,hard:11}[level]||8)*paceFactor*dur;}const intensity=$("strengthIntensity")?.value||"moderate";return kg*({light:3.5,moderate:5,hard:6}[intensity]||5)*dur;})(),EE=Math.round(NE+(rest?0:Math.max(0,exerciseKcal-BMR*dur/24))),EEFinal=Math.round((PLANS[gd]&&PLANS[gd].eeOverride>0)?NE+Math.max(0,PLANS[gd].eeOverride-BMR*dur/24):EE),def=mass?-250:MODE==='pertepoids'?300:0;const Pt=Math.round(proteinTargetGkg(Math.max(0,exerciseKcal-BMR*dur/24),kg,!rest)*kg);let offC=Math.round(cKg*kg);const balanced=balanceEnergyMacros(EEFinal-def,intraC,offC,Pt,kg);offC=balanced.carbs;const Ft=balanced.fat;
+ let cKg=(rest?4:4.8+TSS*.012)+sp.reduce((n,s)=>n+bon[s]*.5,0);if(rcx.load)cKg=Math.max(cKg,rcx.load-rate*dur/kg);cKg=Math.min(cKg,10.5);
+ const intraC=Math.round(rate*dur),BMR=bmrCalc(kg),NE=dailyBaselineKcal(BMR,PROF.pal,$('wake').value,CFG.bedTime||'22:30',dur>0?[{cfg:{ride:$('ride').value,dur,sport,watts,pace:$('pace')?.value,swimPace:$('swimPace')?.value,skiPace:$('skiPace')?.value,strengthIntensity:$('strengthIntensity')?.value,enduranceIntensity:$('enduranceIntensity')?.value}}]:[]),exerciseKcal=(()=>{if(sport==="bike")return watts>0?(watts*dur*3.6)/(0.23*4.184):kg*7*dur;if(sport==="run"){const m=String($("pace").value||"5:30").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:5.5;return kg*(60/Math.max(2.5,pace))*dur;}const level=$("enduranceIntensity")?.value||"moderate",metMap={easy:6,moderate:8,hard:10};if(sport==="swim"){const m=String($("swimPace")?.value||"2:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:2;const paceFactor=Math.max(.85,Math.min(1.15,2/Math.max(.8,pace)));return kg*(metMap[level]||8)*paceFactor*dur;}if(sport==="ski"){const m=String($("skiPace")?.value||"6:00").match(/^(\d{1,2}):(\d{2})$/),pace=m?(+m[1]*60 + +m[2])/60:6;const paceFactor=Math.max(.8,Math.min(1.25,6/Math.max(2.5,pace)));return kg*({easy:6,moderate:8,hard:11}[level]||8)*paceFactor*dur;}const intensity=$("strengthIntensity")?.value||"moderate";return kg*({light:3.5,moderate:5,hard:6}[intensity]||5)*dur;})(),EE=Math.round(NE+(rest?0:Math.max(0,exerciseKcal-BMR*dur/24))),EEFinal=Math.round((PLANS[gd]&&PLANS[gd].eeOverride>0)?NE+Math.max(0,PLANS[gd].eeOverride-BMR*dur/24):EE),def=mass?-250:MODE==='pertepoids'?300:0;const Pt=Math.round(proteinTargetGkg(Math.max(0,exerciseKcal-BMR*dur/24),kg,!rest)*kg);let offC=Math.round(cKg*kg+ctx72.extraCarbG);const balanced=balanceEnergyMacros(EEFinal-def+ctx72.extraEnergyKcal,intraC,offC,Pt,kg);offC=balanced.carbs;const Ft=balanced.fat;
  // --- horaires ---
  const ev=[];const add=(t,type,label,x)=>ev.push(Object.assign({t:Math.round(t/5)*5,type,label},x));
  let needL=true;
@@ -711,9 +742,9 @@ function applyMultiSessionEnergy(P,dayKey){
  const cKg=Math.min(cKgBase,10.5);
  const anyTraining=active.some(c=>Number(c.dur)>0);const proteinKg=proteinTargetGkg(added,kg,anyTraining);
  const protein=Math.round(proteinKg*kg),def=mass?-250:weightLoss?300:0;
- let carbs=Math.round(cKg*kg);
- if(racePlan.load)carbs=Math.max(carbs,Math.round(Math.max(0,racePlan.load-totalIntra/kg)*kg));else carbs+=Math.round(ctx72.mealCarbBoostKg*kg);
- const balanced=balanceEnergyMacros(P.EE-def,totalIntra,carbs,protein,kg);
+ let carbs=Math.round(cKg*kg+ctx72.extraCarbG);
+ if(racePlan.load)carbs=Math.max(carbs,Math.round(Math.max(0,racePlan.load-totalIntra/kg)*kg+ctx72.extraCarbG));
+ const balanced=balanceEnergyMacros(P.EE-def+ctx72.extraEnergyKcal,totalIntra,carbs,protein,kg);
  carbs=balanced.carbs;P.macroFeasible=balanced.feasible;
  const fat=balanced.fat;
  // Redistribute from stable meal-type weights while preserving explicit pre-/post-workout targets.
